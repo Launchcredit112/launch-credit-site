@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
 <title>Launch Checkout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -269,7 +278,21 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
 .footnote p{max-width:76ch;margin:0 auto;}
 
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
+
+/* legal document modal */
+.lgl-ov{position:fixed;inset:0;background:rgba(11,13,16,.5);backdrop-filter:blur(3px);display:none;place-items:center;padding:22px;z-index:90;}
+.lgl-ov.on{display:grid;}
+.lgl{background:#fff;border-radius:22px;max-width:560px;width:100%;max-height:82vh;overflow:auto;padding:32px 32px 26px;box-shadow:0 40px 90px -30px rgba(11,13,16,.45);}
+.lgl h3{font-family:Outfit,Arial,sans-serif;font-weight:600;font-size:24px;letter-spacing:-.02em;}
+.lgl .meta{font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;}
+.lgl p{font-size:15.5px;line-height:1.6;color:var(--dim);margin-top:14px;}
+.lgl .pend{margin-top:18px;padding:14px 16px;border-radius:14px;background:var(--s1);border:1px solid var(--line);font-size:14.5px;color:var(--dim);}
+.lgl-x{margin-top:22px;width:100%;padding:14px;border-radius:100px;border:0;background:var(--ink);color:#fff;font-family:Outfit,Arial,sans-serif;font-weight:600;font-size:16px;cursor:pointer;}
+.lgl-x:hover{background:#0E1B29;}
+a.legal{text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
 </style>
+</head>
+<body>
 
 <header>
   <div class="hd">
@@ -296,7 +319,7 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
           </div>
           <div class="row">
             <div class="f wide pwwrap">
-              <input id="pw" data-req data-type="password" type="password" placeholder="Create a password" autocomplete="new-password">
+              <input id="pw" data-req data-type="password" type="password" placeholder="Create a password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-sensitive>
               <button class="peek" type="button" id="peekPw" aria-label="Show password">
                 <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
               </button>
@@ -317,7 +340,7 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
             <div class="f"><input id="mn" placeholder="Middle name (optional)" autocomplete="additional-name"></div>
             <div class="f"><input id="ln" data-req placeholder="Last name" autocomplete="family-name"><span class="msg">Required</span></div>
           </div>
-          <label class="check"><input type="checkbox" id="ck1"><span>Accept Launch&rsquo;s <a href="#">Terms of Service</a>, <a href="#">E-Sign Consent</a>, <a href="#">Privacy Policy</a>, and <a href="#">Account Agreement</a>.</span></label>
+          <label class="check"><input type="checkbox" id="ck1"><span>Accept Launch&rsquo;s <a href="#" class="legal" data-doc="Terms of Service">Terms of Service</a>, <a href="#" class="legal" data-doc="E-Sign Consent">E-Sign Consent</a>, <a href="#" class="legal" data-doc="Privacy Policy">Privacy Policy</a>, and <a href="#" class="legal" data-doc="Account Agreement">Account Agreement</a>.</span></label>
           <div class="nextwrap"><button class="next" data-next disabled>Next</button><button class="backlink" data-back type="button">Back</button></div>
         </div>
       </li>
@@ -364,7 +387,7 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
           <div id="identity-element"></div>
           <div class="row">
             <div class="f wide ssnwrap">
-              <input id="ssn" data-req data-type="ssn" type="password" placeholder="SSN / ITIN" inputmode="numeric" maxlength="11" autocomplete="off">
+              <input id="ssn" data-req data-type="ssn" type="password" placeholder="SSN / ITIN" inputmode="numeric" maxlength="11" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-sensitive>
               <button class="peek" type="button" id="peek" aria-label="Show number">
                 <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
               </button>
@@ -458,7 +481,7 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
         <button class="sw on" type="button" id="autopay" role="switch" aria-checked="true" aria-label="Autopay"></button>
       </div>
 
-      <label class="check"><input type="checkbox" id="ck4"><span>I&rsquo;ve read and agree to the <a href="#">Credit Account Agreement</a> and the <a href="#">Autopay terms</a>.</span></label>
+      <label class="check"><input type="checkbox" id="ck4"><span>I&rsquo;ve read and agree to the <a href="#" class="legal" data-doc="Credit Account Agreement">Credit Account Agreement</a> and the <a href="#" class="legal" data-doc="Autopay Terms">Autopay terms</a>.</span></label>
 
       <h3>Payment method</h3>
       <button class="express" type="button">Express checkout<span class="brandbar"><i></i><i></i><i></i></span></button>
@@ -530,6 +553,17 @@ header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0
 
 <div class="footnote">
   <p>Launch is a credit education and credit-building service. Launch is not a lender, a credit repair organization, a law firm, a credit counseling agency, or a credit reporting agency, and does not dispute items on your behalf. You have the right to dispute inaccurate information in your credit report yourself, at no cost, and may obtain a free copy of your report at annualcreditreport.com. Credit builder accounts and bureau reporting are provided by an independent third-party lending partner; their terms, fees and eligibility rules apply and Launch is compensated when you open an account. No result is guaranteed and individual results vary.</p>
+</div>
+
+
+<div class="lgl-ov" id="lglOv" role="dialog" aria-modal="true" aria-labelledby="lglT" hidden>
+  <div class="lgl">
+    <p class="meta">Launch legal document</p>
+    <h3 id="lglT">Terms of Service</h3>
+    <p>The final text of this document is being prepared and will be published here before any account can be opened.</p>
+    <div class="pend">You will be asked to review and accept the completed document before your account is created. Nothing is agreed to by closing this window.</div>
+    <button class="lgl-x" type="button" id="lglX">Close</button>
+  </div>
 </div>
 
 <script>
@@ -705,6 +739,7 @@ $("startBtn").addEventListener('click',function(){
   if(!stepOk(6)) return;
   var b=this; b.disabled=true; b.textContent='Setting up…';
   setTimeout(function(){
+    wipeSensitive();
     $("acc").style.display='none';
     $("formTop").style.display='none';
     $("done").classList.add('on');
@@ -713,6 +748,35 @@ $("startBtn").addEventListener('click',function(){
   },900);
 });
 
+/* ---- legal document modal ---- */
+(function(){
+  var ov=$("lglOv"), ttl=$("lglT"), last=null;
+  function open(name,src){
+    last=src; ttl.textContent=name;
+    ov.hidden=false; ov.classList.add('on');
+    $("lglX").focus();
+  }
+  function close(){
+    ov.classList.remove('on'); ov.hidden=true;
+    if(last) last.focus();
+  }
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a.legal');
+    if(a){ e.preventDefault(); open(a.dataset.doc, a); return; }
+    if(e.target===ov) close();
+  });
+  $("lglX").addEventListener('click',close);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&ov.classList.contains('on')) close(); });
+})();
+
+/* ---- keep sensitive values out of memory once they are no longer needed ---- */
+function wipeSensitive(){
+  document.querySelectorAll('[data-sensitive]').forEach(function(el){ el.value=''; });
+}
+addEventListener('pagehide', wipeSensitive);
+
 refresh(0);
 })();
 </script>
+</body>
+</html>
