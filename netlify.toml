@@ -1,0 +1,24 @@
+[[redirects]]
+from = "https://launch-credit.netlify.app/*"
+to = "https://launch.credit/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "http://launch-credit.netlify.app/*"
+to = "https://launch.credit/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "https://main--launch-credit.netlify.app/*"
+to = "https://launch.credit/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "https://www.launch.credit/*"
+to = "https://launch.credit/:splat"
+status = 301
+force = true
+
