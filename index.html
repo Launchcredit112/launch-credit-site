@@ -287,16 +287,17 @@ h1 .ital{font-size:1.02em;}
 @keyframes blip{0%,100%{opacity:1;}50%{opacity:.3;}}
 
 /* ===== SCORE CALCULATOR ===== */
-.kc{display:block;border:1px solid var(--line);border-radius:30px;overflow:hidden;box-shadow:var(--sh);background:#fff;}
+.kc{display:block;border:1px solid var(--line);border-radius:26px;box-shadow:var(--sh-sm);background:#fff;}
 @media(max-width:940px){.kc{grid-template-columns:1fr;}}
-.kc-l{padding:38px 40px 34px;}
-.kc-l .kc-lb{font-size:21px;}
+.kc-l{padding:26px 30px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 32px;}
+.kc-field{display:flex;flex-direction:column;gap:11px;flex:0 0 auto;}
+.kc-help{margin-top:0;flex:1 1 300px;}
 @media(max-width:940px){.kc-l{border-right:0;border-bottom:1px solid var(--line);}}
 @media(max-width:560px){.kc-l,.kc-r{padding:30px 22px;}}
 
 .kc-lb{font-size:19px;font-weight:600;font-family:Outfit,Arial,sans-serif;letter-spacing:-.02em;display:block;}
 .kc-in{
-  width:100%;margin-top:16px;background:var(--s1);border:2px solid var(--line2);border-radius:20px;
+  width:190px;background:var(--s1);border:2px solid var(--line2);border-radius:20px;
   padding:18px 24px;font-family:Outfit,Arial,sans-serif;font-weight:600;font-size:clamp(46px,6vw,64px);
   letter-spacing:-.04em;color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s,background .18s;
   font-variant-numeric:tabular-nums;
@@ -309,7 +310,7 @@ h1 .ital{font-size:1.02em;}
 .kc-sub{font-size:19px;font-weight:600;font-family:Outfit,Arial,sans-serif;letter-spacing:-.02em;}
 .kc-unlock{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px;}
 @media(max-width:900px){.kc-unlock{grid-template-columns:1fr 1fr;}}
-@media(max-width:400px){.kc-unlock{grid-template-columns:1fr;}}
+@media(max-width:440px){.kc-unlock{grid-template-columns:1fr;}}
 .uk{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:20px;transition:transform .2s cubic-bezier(.2,.8,.3,1),border-color .2s,background .2s;}
 .uk:hover{transform:translateY(-3px);border-color:var(--green-lt);background:#fff;}
 .uk .ic{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--wash);font-size:21px;margin-bottom:14px;}
@@ -318,6 +319,8 @@ h1 .ital{font-size:1.02em;}
 
 /* right pane — results */
 .kc-r{margin-top:20px;display:flex;flex-direction:column;gap:20px;}
+.kc-buy{padding:26px 30px 28px;}
+.kc-buy .kc-sub{margin-bottom:16px;}
 .kc-res{display:grid;grid-template-columns:1.72fr 1fr;gap:20px;}
 @media(max-width:1080px){.kc-res{grid-template-columns:1fr;}}
 .rescard{background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--sh-sm);padding:34px 34px 30px;}
@@ -353,7 +356,10 @@ h1 .ital{font-size:1.02em;}
 .mtr-cross b{font-weight:600;}
 
 /* --- side card --- */
-.rescard-meter{display:flex;flex-direction:column;justify-content:center;}
+.rescard-meter{display:flex;flex-direction:column;justify-content:space-between;gap:18px;}
+.mtr-mid{flex:0 0 auto;}
+.rescard-meter .mtr-trk{margin-top:44px;}
+.rescard-meter .mtr-div{margin:0 0 18px;}
 .rescard-side{display:flex;flex-direction:column;}
 .sd-hero{display:flex;align-items:center;gap:18px;}
 .sd-ic{flex:none;width:64px;height:64px;border-radius:100px;background:var(--iris-wash);display:grid;place-items:center;}
@@ -534,7 +540,8 @@ footer.site{border-top:1px solid var(--line);padding:60px 0 110px;background:var
   .mtr-band{font-size:19px;}
   .mtr-trk{margin-top:46px;}
   .mtr-scale{font-size:13px;}
-  .mtr-scale .v{font-size:13px;}
+  .mtr-scale .v{display:none;}
+  .mtr-tick{opacity:.7;}
   .mtr-bub{font-size:16px;padding:7px 14px;}
   .sd-ic{width:52px;height:52px;}
   .sd-ic svg{width:23px;height:23px;}
@@ -629,17 +636,12 @@ footer.site{border-top:1px solid var(--line);padding:60px 0 110px;background:var
 
     <div class="kc rv">
       <div class="kc-l">
-        <label class="kc-lb" for="scoreIn">What&rsquo;s your score today?</label>
-        <input id="scoreIn" class="kc-in" type="text" inputmode="numeric" value="575" maxlength="3" aria-label="Your credit score today">
-        <p class="kc-help">Not sure? A rough guess works fine. <em>Free</em> &middot; no credit check &middot; nothing to sign up for.</p>
-        <div class="kc-div"></div>
-        <p class="kc-sub">What those points actually buy</p>
-        <div class="kc-unlock">
-          <div class="uk"><span class="ic">🚗</span><b>Drive off the lot</b><span>instead of getting quoted 20%</span></div>
-          <div class="uk"><span class="ic">🏡</span><b>Get the keys</b><span>without needing a cosigner</span></div>
-          <div class="uk"><span class="ic">💳</span><b>A real limit</b><span>not another $300 starter card</span></div>
-          <div class="uk"><span class="ic">🔑</span><b>Skip the deposit</b><span>on the next place you rent</span></div>
+        <div class="kc-field">
+          <label class="kc-lb" for="scoreIn">What&rsquo;s your score today?</label>
+          <input id="scoreIn" class="kc-in" type="text" inputmode="numeric" value="575" maxlength="3" aria-label="Your credit score today">
         </div>
+        <p class="kc-help">Not sure? A rough guess works fine. <em>Free</em> &middot; no credit check &middot; nothing to sign up for.</p>
+
       </div>
     </div>
 
@@ -659,6 +661,7 @@ footer.site{border-top:1px solid var(--line);padding:60px 0 110px;background:var
             </div>
           </div>
 
+          <div class="mtr-mid">
           <div class="mtr-trk">
             <div class="mtr-rail"></div>
             <i class="mtr-tick a" id="tickA"></i>
@@ -673,6 +676,7 @@ footer.site{border-top:1px solid var(--line);padding:60px 0 110px;background:var
             <span class="v low tnum" id="scaleA">575</span>
             <span class="v hi tnum" id="scaleB">636</span>
             <span class="e ar">850</span>
+          </div>
           </div>
 
           <div class="mtr-div"></div>
@@ -708,6 +712,16 @@ footer.site{border-top:1px solid var(--line);padding:60px 0 110px;background:var
 
           <div class="mtr-div"></div>
           <p class="sd-fine">This is a projection based on average results.<br>Your results may vary.</p>
+        </div>
+        </div>
+
+        <div class="rescard kc-buy">
+          <p class="kc-sub">What those points actually buy</p>
+          <div class="kc-unlock">
+          <div class="uk"><span class="ic">🚗</span><b>Drive off the lot</b><span>instead of getting quoted 20%</span></div>
+          <div class="uk"><span class="ic">🏡</span><b>Get the keys</b><span>without needing a cosigner</span></div>
+          <div class="uk"><span class="ic">💳</span><b>A real limit</b><span>not another $300 starter card</span></div>
+          <div class="uk"><span class="ic">🔑</span><b>Skip the deposit</b><span>on the next place you rent</span></div>
         </div>
         </div>
 
