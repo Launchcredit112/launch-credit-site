@@ -1,0 +1,14 @@
+# Security headers. frame-ancestors and HSTS cannot be delivered via a <meta>
+# tag, so the policy is repeated here as a real response header. Keep the CSP
+# below in sync with the <meta http-equiv="Content-Security-Policy"> in
+# index.html and checkout.html - browsers enforce both, and the effective
+# policy is their intersection.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Strict-Transport-Security = "max-age=31536000"
