@@ -123,45 +123,6 @@ extension BillAccount {
     }
 }
 
-extension Offer {
-    static var seed: [Offer] {
-        [
-            Offer(
-                category: "Credit builder",
-                name: "Launch Builder — Premium",
-                detail: "Step up to a $2,500 reported tradeline. No hard inquiry, reports to all three bureaus.",
-                highlight: "Available now",
-                paysCommission: false,
-                unlocksAtScore: 0
-            ),
-            Offer(
-                category: "Card matches",
-                name: "Secured Rewards Card",
-                detail: "A starter card matched to a thin file. Deposit becomes your limit; graduates to unsecured after 7 on-time months.",
-                highlight: "Likely approval",
-                paysCommission: true,
-                unlocksAtScore: 620
-            ),
-            Offer(
-                category: "Card matches",
-                name: "Everyday Cashback Card",
-                detail: "Unsecured, 1.5% back on everything. Wants a mid-600s file and clean recent history.",
-                highlight: "Close — a few more months",
-                paysCommission: true,
-                unlocksAtScore: 680
-            ),
-            Offer(
-                category: "Auto refinance",
-                name: "Auto Refinance Match",
-                detail: "If you are paying over 12% on a car loan, refinancing at your new score could cut the rate meaningfully.",
-                highlight: "Check your rate",
-                paysCommission: true,
-                unlocksAtScore: 660
-            )
-        ]
-    }
-}
-
 extension Subscription {
     static var seed: Subscription {
         Subscription(

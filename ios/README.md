@@ -27,12 +27,12 @@ that the site does not already sell.
 | **Coach** | The AI coach, grounded in the member's real file | "AI coach, 24/7" |
 | **Account** | Plan and billing, what's included, disclosures, sign out — behind the avatar on Home | pricing card + footer legal |
 | **Simulator** | What-if projection — test a move before making it | "What-if simulator" |
-| **Marketplace** | Offers that unlock at the right score, with commission disclosed | "Offers picked for you" |
 
-Deliberately **not** built, because the site does not offer them: biometric
-unlock, in-app sign-up (the checkout collects SSN and address — that stays on
-the web), free-form bill entry, changing the builder tier after checkout, and
-account deletion.
+Deliberately **not** built: biometric unlock, in-app sign-up (the checkout
+collects SSN and address — that stays on the web), free-form bill entry,
+changing the builder tier after checkout, and account deletion. The
+marketplace the site runs is not in the app either — the coach still answers
+whether a file is ready for an application, it just doesn't sell against it.
 
 ## Architecture
 

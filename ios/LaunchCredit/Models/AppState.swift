@@ -24,7 +24,6 @@ final class AppState: ObservableObject {
     @Published var nextMove: NextMove? = .seed
     @Published var builder: BuilderAccount = .seed
     @Published var bills: [BillAccount] = BillAccount.seed
-    @Published var offers: [Offer] = Offer.seed
     @Published var subscription: Subscription = .seed
 
     // MARK: - Coach

@@ -211,20 +211,6 @@ struct BillAccount: Codable, Equatable, Identifiable {
     var backdatedMonths: Int
 }
 
-// MARK: - Marketplace
-
-struct Offer: Codable, Equatable, Identifiable {
-    var id: UUID = UUID()
-    var category: String
-    var name: String
-    var detail: String
-    var highlight: String
-    /// The site promises: "We tell you when we earn a commission."
-    var paysCommission: Bool
-    /// Minimum score before we surface it — "when your file is ready, not before".
-    var unlocksAtScore: Int
-}
-
 // MARK: - Subscription
 
 struct Subscription: Codable, Equatable {

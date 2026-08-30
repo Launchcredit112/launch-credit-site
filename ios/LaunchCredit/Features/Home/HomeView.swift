@@ -8,7 +8,6 @@ struct HomeView: View {
 
     @State private var showingAccount = false
     @State private var showingSimulator = false
-    @State private var showingMarketplace = false
 
     var body: some View {
         NavigationStack {
@@ -21,7 +20,7 @@ struct HomeView: View {
                         scoreCard
                         nextMoveCard
                         bureausCard
-                        toolsRow
+                        simulatorCard
                         disclosure
                     }
                     .padding(.horizontal, Metrics.gutter)
@@ -32,7 +31,6 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingAccount) { AccountView() }
             .sheet(isPresented: $showingSimulator) { SimulatorView() }
-            .sheet(isPresented: $showingMarketplace) { MarketplaceView() }
         }
     }
 
@@ -235,24 +233,14 @@ struct HomeView: View {
 
     // MARK: - Tools
 
-    private var toolsRow: some View {
-        VStack(spacing: 12) {
-            ToolCard(
-                icon: "slider.horizontal.below.rectangle",
-                title: "What-if simulator",
-                subtitle: "Test a move before you make it.",
-                tint: Brand.irisWash,
-                iconTint: Brand.iris
-            ) { showingSimulator = true }
-
-            ToolCard(
-                icon: "sparkles",
-                title: "Marketplace",
-                subtitle: "Offers picked for your file — not before it's ready.",
-                tint: Brand.wash,
-                iconTint: Brand.greenDk
-            ) { showingMarketplace = true }
-        }
+    private var simulatorCard: some View {
+        ToolCard(
+            icon: "slider.horizontal.below.rectangle",
+            title: "What-if simulator",
+            subtitle: "Test a move before you make it.",
+            tint: Brand.irisWash,
+            iconTint: Brand.iris
+        ) { showingSimulator = true }
     }
 
     private var disclosure: some View {

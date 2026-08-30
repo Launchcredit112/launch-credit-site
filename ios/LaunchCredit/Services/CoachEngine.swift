@@ -37,7 +37,7 @@ enum CoachIntent: CaseIterable {
     case bureaus
     case billing
     case simulate
-    case marketplace
+    case applying
     case hardInquiry
     case latePayment
     case collections
@@ -59,7 +59,7 @@ enum CoachIntent: CaseIterable {
         case .bureaus:        return ["bureau", "bureaus", "experian", "equifax", "transunion", "report to", "reporting to"]
         case .billing:        return ["price", "cost", "charge", "billing", "subscription", "cancel", "refund", "how much is launch", "payment date", "free"]
         case .simulate:       return ["what if", "simulate", "simulator", "would happen", "if i pay", "if i open", "projection", "forecast"]
-        case .marketplace:    return ["offer", "offers", "apply", "new card", "which card", "refinance", "auto loan", "mortgage", "approved"]
+        case .applying:       return ["apply", "applying", "new card", "which card", "refinance", "auto loan", "mortgage", "approved", "ready for a card"]
         case .hardInquiry:    return ["hard inquiry", "hard pull", "soft pull", "soft check", "inquiry", "inquiries", "does it hurt", "lower my score"]
         case .latePayment:    return ["late", "missed", "missed a payment", "past due", "behind", "delinquent", "30 days"]
         case .collections:    return ["collection", "collections", "charge off", "charge-off", "debt collector", "settle"]
@@ -232,18 +232,18 @@ struct OnDeviceCoach: CoachEngine {
                 suggestions: ["Open the simulator", "What if I pay off my card?"]
             )
 
-        case .marketplace:
+        case .applying:
             if c.score < 640 {
                 return ChatMessage(
                     role: .coach,
-                    text: "Not yet — and that's me protecting you. Applying now most likely means a denial and a hard inquiry you keep for two years. Give it a few more months of on-time history and I'll surface the offers that actually match your file.",
+                    text: "Not yet — and that's me protecting you. Applying now most likely means a denial and a hard inquiry you keep for two years. Give it a few more months of on-time history first.",
                     suggestions: ["What gets me there faster?", "How long until I'm ready?"]
                 )
             }
             return ChatMessage(
                 role: .coach,
-                text: "Your file's ready for a look. I only surface products that match where you actually are — and I'll tell you outright when we earn a commission on one.",
-                suggestions: ["Show me offers", "Will applying hurt my score?"]
+                text: "Your file can carry an application now. Keep it to one — every application is a hard inquiry, and three in a month reads as strain no matter how good the rest of your file looks.",
+                suggestions: ["Will applying hurt my score?", "What's my next move?"]
             )
 
         case .hardInquiry:
