@@ -49,6 +49,11 @@ LaunchCredit/
 `AppState` is the only store. Views never touch persistence directly, so
 swapping the seed data for API responses is a change in one layer.
 
+Utilization is **derived, never stored** — `ScoreSimulator.utilization(of:)`
+over the member's cards. Marking this week's move done debits the card it
+names, which moves utilization, the score and the *next* move together, so the
+file never drifts away from the checkbox.
+
 ### Theme
 
 `Theme/Theme.swift` mirrors the CSS custom properties in `index.html` one for
@@ -71,12 +76,27 @@ real thing:
 
 `Services/CoachEngine.swift` has two implementations behind one protocol:
 
-- **`OnDeviceCoach`** — classifies intent and answers from the member's real
-  numbers: balances, utilization, reported bills, builder account, next move,
-  billing dates. Deterministic, private, and works with no network, which is
+- **`OnDeviceCoach`** — reads the question, then does arithmetic on the
+  member's real file. Deterministic, private, works with no network, which is
   what makes "ask me at 2am" true.
 - **`RemoteCoach`** — posts to your backend and **falls back to the on-device
   coach** on any failure, so a member always gets an answer.
+
+What makes the on-device coach worth having:
+
+- **It computes, it doesn't recite.** "How much should I pay?" returns the
+  actual figure that clears 30% on the actual card, by the actual statement
+  date, with the point estimate that figure is worth. "What if I pay $300?"
+  answers the amount they named, and says what the right number would be.
+- **It carries the thread.** `CoachQuery` pulls dollar figures and target
+  scores out of the sentence; `CoachIntent.classify` weighs phrases above
+  words, and a bare follow-up ("how much?", "why?") inherits the last topic.
+- **It can act.** A reply may carry a `CoachAction` — mark this week's move
+  done, switch a bill on, open the simulator — rendered as one button under
+  the answer, so the member never goes hunting for the screen.
+- **It shares one model with the rest of the app.** Every point estimate,
+  in chat, on Home and in the simulator, comes from `ScoreSimulator`, so the
+  three can't quietly disagree.
 
 To route through a backend, set `LAUNCH_COACH_URL` in `LaunchCredit-Info.plist`
 (https only) and store the bearer token in the keychain under `coach.token`.
@@ -109,5 +129,6 @@ number), and every sign-in after that is checked against it. Point
 - [ ] Set `DEVELOPMENT_TEAM` and a real `PRODUCT_BUNDLE_IDENTIFIER`
 - [ ] Add the brand fonts (and confirm their licences)
 - [ ] Point the sign-up link at the live checkout URL if it ever moves
-- [ ] Have compliance review the disclosure copy — it repeats the site's
-      "credit-building, not credit repair" language and should stay in sync
+- [ ] Have compliance review the disclosure copy and the coach's answers —
+      both repeat the site's "credit-building, not credit repair" language
+      and should stay in sync

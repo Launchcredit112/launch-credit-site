@@ -15,7 +15,6 @@ enum Brand {
     static let ink     = Color(hex: 0x0B0D10)
     static let dim     = Color(hex: 0x55605A)
     static let faint   = Color(hex: 0x8B958F)
-    static let onGreen = Color(hex: 0x040C15)
 
     // MARK: - Lines
     static let line    = Color(hex: 0x0B0D10, alpha: 0.10)
@@ -30,7 +29,6 @@ enum Brand {
 
     // MARK: - Accents
     static let orange  = Color(hex: 0xE8963C)
-    static let purple  = Color(hex: 0xB9A0FF)
     static let red     = Color(hex: 0xD14836)
     static let scoreLo = Color(hex: 0xE8431C)
     static let scoreHi = Color(hex: 0x0B5BE0)
@@ -68,27 +66,39 @@ enum BrandFont {
     }
 
     /// `h1`/`h2`/`h3` on the site: Outfit 700, letter-spacing -.035em.
+    ///
+    /// Headings and figures sit inside fixed-height cards, so they scale with
+    /// Dynamic Type but stop short of the largest accessibility sizes — past
+    /// that the number would clip rather than read.
     static func heading(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
         if isAvailable(headingFamily) {
-            return .custom(headingFamily, size: size).weight(weight)
+            return .custom(headingFamily, size: scaled(size, cappedAt: 1.4), relativeTo: .title3).weight(weight)
         }
-        return .system(size: size, weight: weight, design: .rounded)
+        return .system(size: scaled(size, cappedAt: 1.4), weight: weight, design: .rounded)
     }
 
-    /// Body copy: Plus Jakarta Sans.
+    /// Body copy: Plus Jakarta Sans. Scales all the way — running text is what
+    /// members turn the setting up for.
     static func body(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         if isAvailable(bodyFamily) {
-            return .custom(bodyFamily, size: size).weight(weight)
+            return .custom(bodyFamily, size: size, relativeTo: .body).weight(weight)
         }
-        return .system(size: size, weight: weight)
+        return .system(size: scaled(size), weight: weight)
     }
 
-    /// `.ital` — Instrument Serif italic, used for the emphasised half of a headline.
+    /// `.ital` — Instrument Serif italic, the emphasised half of a headline.
     static func serifItalic(_ size: CGFloat) -> Font {
         if isAvailable(serifFamily) {
-            return .custom(serifFamily, size: size)
+            return .custom(serifFamily, size: scaled(size, cappedAt: 1.4), relativeTo: .title3)
         }
-        return .system(size: size, weight: .regular, design: .serif).italic()
+        return .system(size: scaled(size, cappedAt: 1.4), weight: .regular, design: .serif).italic()
+    }
+
+    /// `Font.custom(_:size:relativeTo:)` scales on its own; the system
+    /// fallbacks need the metrics applied by hand.
+    private static func scaled(_ size: CGFloat, cappedAt limit: CGFloat = .greatestFiniteMagnitude) -> CGFloat {
+        let scaledSize = UIFontMetrics.default.scaledValue(for: size)
+        return min(scaledSize, size * limit)
     }
 
     /// `.eyebrow` — 12px / 700 / .22em uppercase.
@@ -123,7 +133,6 @@ private final class FontAvailabilityCache: @unchecked Sendable {
 enum Metrics {
     static let radiusCard: CGFloat = 22
     static let radiusTile: CGFloat = 16
-    static let radiusPill: CGFloat = 100
     static let gutter: CGFloat = 20
     static let sectionGap: CGFloat = 26
 }

@@ -80,22 +80,6 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// `.btn.btn-dark`
-struct DarkButtonStyle: ButtonStyle {
-    var fullWidth: Bool = true
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(BrandFont.heading(16, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 26)
-            .frame(maxWidth: fullWidth ? .infinity : nil)
-            .background(configuration.isPressed ? Color(hex: 0x1E2621) : Brand.ink, in: Capsule())
-            .scaleEffect(configuration.isPressed ? 0.975 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
 /// `.btn.btn-line`
 struct LineButtonStyle: ButtonStyle {
     var fullWidth: Bool = true
@@ -374,26 +358,5 @@ struct BrandField: View {
     private var borderColor: Color {
         if errorMessage != nil { return Brand.red }
         return isFocused ? Brand.green : Brand.line2
-    }
-}
-
-// MARK: - Progress track
-
-/// `.ph-track` / `.mtr` — the thin gradient progress rail.
-struct ProgressTrack: View {
-    /// 0...1
-    let value: Double
-    var height: CGFloat = 8
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Brand.s3)
-                Capsule()
-                    .fill(Brand.grad)
-                    .frame(width: max(0, min(1, value)) * geo.size.width)
-            }
-        }
-        .frame(height: height)
     }
 }

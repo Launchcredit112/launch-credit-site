@@ -20,8 +20,9 @@ final class AppState: ObservableObject {
     // MARK: - Member data
 
     @Published var profile: CreditProfile = .seed
+    @Published var cards: [CreditCard] = CreditCard.seed
     @Published var fixes: [FixItem] = FixItem.seed
-    @Published var nextMove: NextMove? = .seed
+    @Published var nextMove: NextMove? = NextMove.thisWeek(cards: CreditCard.seed)
     @Published var builder: BuilderAccount = .seed
     @Published var bills: [BillAccount] = BillAccount.seed
     @Published var subscription: Subscription = .seed
@@ -30,6 +31,16 @@ final class AppState: ObservableObject {
 
     @Published var messages: [ChatMessage] = []
     @Published var coachIsTyping = false
+    /// What the last question was about, so "how much?" knows what it follows.
+    private var lastIntent: CoachIntent?
+
+    // MARK: - Derived
+
+    /// Balances over limits, computed rather than stored — every screen and
+    /// every coach answer reads the same number.
+    var utilization: Double { ScoreSimulator.utilization(of: cards) }
+
+    var worstCard: CreditCard? { cards.max(by: { $0.utilization < $1.utilization }) }
 
     private let auth: AuthServicing
     private let coach: CoachEngine
@@ -76,6 +87,7 @@ final class AppState: ObservableObject {
     private func loadMemberData() {
         if let saved = store.load() {
             profile = saved.profile
+            cards = saved.cards
             fixes = saved.fixes
             nextMove = saved.nextMove
             builder = saved.builder
@@ -91,6 +103,7 @@ final class AppState: ObservableObject {
         store.save(
             .init(
                 profile: profile,
+                cards: cards,
                 fixes: fixes,
                 nextMove: nextMove,
                 builder: builder,
@@ -109,9 +122,10 @@ final class AppState: ObservableObject {
             firstName: user?.firstName ?? "there",
             score: profile.score,
             changeSinceStart: profile.changeSinceStart,
-            utilization: profile.utilization,
             previousUtilization: profile.previousUtilization,
             onTimeStreakMonths: profile.onTimeStreakMonths,
+            history: profile.history,
+            cards: cards,
             builder: builder,
             bills: bills,
             fixes: fixes,
@@ -137,9 +151,38 @@ final class AppState: ObservableObject {
 
         messages.append(ChatMessage(role: .member, text: question))
         coachIsTyping = true
-        let reply = await coach.reply(to: question, context: coachContext)
+        let previous = lastIntent
+        lastIntent = CoachIntent.classify(CoachQuery(question), previous: previous)
+        let reply = await coach.reply(to: question, context: coachContext, previousIntent: previous)
         coachIsTyping = false
         messages.append(reply)
+        persistMemberData()
+    }
+
+    /// Runs an action the coach offered, then says what happened — the member
+    /// never has to go find the screen it lives on.
+    func perform(_ action: CoachAction) {
+        switch action {
+        case .markMoveDone:
+            completeNextMove()
+            let confirmation = nextMove.map { "Done. Next up: \($0.headline.lowercased())." }
+                ?? "Done — and that clears your plan for now. I'll tell you when something needs you."
+            messages.append(ChatMessage(role: .coach, text: confirmation, suggestions: ["Show me my score"]))
+
+        case .turnOnBill(let kind):
+            guard let bill = bills.first(where: { $0.kind == kind }) else { return }
+            toggleBill(bill)
+            messages.append(
+                ChatMessage(
+                    role: .coach,
+                    text: "Switched on. We'll verify your \(kind.label.lowercased()) with \(bill.provider) — usually a few days — then it starts reporting to all three bureaus.",
+                    suggestions: ["What's my next move?"]
+                )
+            )
+
+        case .openSimulator:
+            break  // presented by the view; nothing to change in state
+        }
         persistMemberData()
     }
 
@@ -152,18 +195,27 @@ final class AppState: ObservableObject {
 
     func clearConversation() {
         messages = []
+        lastIntent = nil
         seedConversation()
         persistMemberData()
     }
 
     // MARK: - Member actions
 
-    /// "Mark it done" on this week's move.
+    /// "Mark it done" on this week's move. The payment lands on the card, so
+    /// utilization, the score and the *next* move all move together — the file
+    /// stays true instead of the checkbox drifting away from it.
     func completeNextMove() {
-        guard var move = nextMove, !move.isDone else { return }
-        move.isDone = true
-        nextMove = move
+        guard let move = nextMove, !move.isDone else { return }
+
+        if let payment = move.payment,
+           let cardID = move.cardID,
+           let index = cards.firstIndex(where: { $0.id == cardID }) {
+            cards[index].balance = max(0, cards[index].balance - payment)
+        }
+
         applyScoreChange(move.estimatedPoints)
+        nextMove = NextMove.thisWeek(cards: cards)
         persistMemberData()
     }
 
@@ -202,6 +254,7 @@ final class AppState: ObservableObject {
 /// the keychain (`Keychain.swift`).
 private struct MemberSnapshot: Codable {
     var profile: CreditProfile
+    var cards: [CreditCard]
     var fixes: [FixItem]
     var nextMove: NextMove?
     var builder: BuilderAccount

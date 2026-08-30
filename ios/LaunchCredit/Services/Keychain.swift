@@ -35,15 +35,6 @@ enum Keychain {
         return out as? Data
     }
 
-    static func remove(_ key: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        SecItemDelete(query as CFDictionary)
-    }
-
     // MARK: - Codable convenience
 
     @discardableResult

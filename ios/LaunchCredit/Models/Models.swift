@@ -7,7 +7,6 @@ struct User: Codable, Equatable, Identifiable {
     var firstName: String
     var lastName: String
     var email: String
-    var phone: String?
     var joinedAt: Date
 
     var fullName: String { [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ") }
@@ -42,7 +41,6 @@ struct BureauScore: Codable, Equatable, Identifiable {
     var bureau: Bureau
     var score: Int
     var change: Int
-    var isReporting: Bool
 
     var id: String { bureau.rawValue }
 }
@@ -57,10 +55,10 @@ struct ScorePoint: Codable, Equatable, Identifiable {
 struct CreditProfile: Codable, Equatable {
     var score: Int
     var changeSinceStart: Int
-    var utilization: Double          // 0...1
+    /// Where utilization stood when the member joined, kept as history. What it
+    /// is *now* is derived from `cards` — see `AppState.utilization`.
     var previousUtilization: Double  // 0...1
     var onTimeStreakMonths: Int
-    var openAccounts: Int
     var history: [ScorePoint]
     var bureaus: [BureauScore]
     var lastRefreshed: Date
@@ -76,6 +74,41 @@ func creditBand(for score: Int) -> String {
     case ..<740: return "Good"
     case ..<800: return "Very good"
     default:     return "Excellent"
+    }
+}
+
+// MARK: - Revolving accounts
+
+/// A card on the file. The coach needs balances and limits to answer "how much
+/// should I pay" with a number instead of a platitude.
+struct CreditCard: Codable, Equatable, Identifiable {
+    var id: UUID = UUID()
+    /// How the member recognises it, e.g. "Visa ···4021".
+    var name: String
+    var balance: Decimal
+    var limit: Decimal
+    /// Day of the month the balance reports to the bureaus.
+    var statementDay: Int
+
+    var utilization: Double {
+        guard limit > 0 else { return 0 }
+        return min(1, NSDecimalNumber(decimal: balance).doubleValue / NSDecimalNumber(decimal: limit).doubleValue)
+    }
+
+    /// What it would take to land at `target` utilization on this card.
+    /// Negative means already there.
+    func payoff(toReach target: Double) -> Decimal {
+        let ceiling = limit * Decimal(target)
+        return balance - ceiling
+    }
+
+    /// The next date this balance reports, so advice can name a real deadline.
+    func nextStatementDate(from now: Date = Date(), calendar: Calendar = .current) -> Date {
+        var components = calendar.dateComponents([.year, .month], from: now)
+        components.day = statementDay
+        let thisMonth = calendar.date(from: components) ?? now
+        if thisMonth > now { return thisMonth }
+        return calendar.date(byAdding: .month, value: 1, to: thisMonth) ?? thisMonth
     }
 }
 
@@ -118,6 +151,10 @@ struct NextMove: Codable, Equatable, Identifiable {
     var dueDate: Date
     var estimatedPoints: Int
     var isDone: Bool = false
+    /// What the move actually asks for, so marking it done can apply it to the
+    /// file instead of just ticking a box.
+    var payment: Decimal? = nil
+    var cardID: UUID? = nil
 }
 
 // MARK: - Builder account
@@ -160,7 +197,6 @@ struct BuilderAccount: Codable, Equatable {
     var openedAt: Date?
     var onTimePayments: Int
     var nextPaymentDate: Date
-    var reportsTo: [Bureau]
 }
 
 // MARK: - Reported bills
@@ -240,7 +276,25 @@ struct ChatMessage: Codable, Equatable, Identifiable {
     var role: Role
     var text: String
     var attachment: Attachment? = nil
-    var sentAt: Date = Date()
     /// Suggested follow-ups the member can tap instead of typing.
     var suggestions: [String] = []
+    /// Some answers end in something the member can just do. The coach offers
+    /// it inline rather than sending them off to find the screen.
+    var action: CoachAction? = nil
+}
+
+/// Something the coach can do on the member's behalf, offered as one button
+/// under the reply that suggested it.
+enum CoachAction: Codable, Equatable {
+    case markMoveDone
+    case turnOnBill(BillAccount.Kind)
+    case openSimulator
+
+    var label: String {
+        switch self {
+        case .markMoveDone:        return "Mark it done"
+        case .turnOnBill(let kind): return "Turn on \(kind.label.lowercased())"
+        case .openSimulator:       return "Open the simulator"
+        }
+    }
 }

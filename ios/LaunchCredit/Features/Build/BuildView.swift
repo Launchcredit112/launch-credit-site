@@ -83,6 +83,7 @@ struct BuildView: View {
 
             ForEach(state.bills) { bill in
                 BillRow(bill: bill) {
+                    Haptics.tap()
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                         state.toggleBill(bill)
                     }
@@ -134,8 +135,8 @@ struct BillRow: View {
     private var statusText: String {
         switch bill.state {
         case .reporting: return bill.backdatedMonths > 0 ? "Reporting · \(bill.backdatedMonths) mo backdated" : "Reporting"
-        case .pending:   return "Verifying — usually a few days"
-        case .off:       return "Not reporting yet"
+        case .pending:   return "Verifying \(bill.provider) — usually a few days"
+        case .off:       return bill.provider
         }
     }
 

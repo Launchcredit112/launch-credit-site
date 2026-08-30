@@ -96,7 +96,7 @@ struct HomeView: View {
                 HStack(alignment: .top, spacing: 10) {
                     SnapshotStat(
                         key: "Utilization",
-                        value: "\(Int((state.profile.utilization * 100).rounded()))%",
+                        value: "\(Int((state.utilization * 100).rounded()))%",
                         note: "Down from \(Int((state.profile.previousUtilization * 100).rounded()))%"
                     )
                     SnapshotStat(
@@ -154,6 +154,7 @@ struct HomeView: View {
 
                     HStack(spacing: 10) {
                         Button("Mark it done") {
+                            Haptics.success()
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                 state.completeNextMove()
                             }
@@ -161,6 +162,7 @@ struct HomeView: View {
                         .buttonStyle(PrimaryButtonStyle(fullWidth: false))
 
                         Button("Ask why") {
+                            Haptics.tap()
                             state.askCoach("Why that one first?")
                             selection = .coach
                         }

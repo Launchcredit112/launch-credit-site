@@ -6,6 +6,7 @@ import UIKit
 struct CoachView: View {
     @EnvironmentObject private var state: AppState
     @State private var draft = ""
+    @State private var showingSimulator = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,7 @@ struct CoachView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showingSimulator) { SimulatorView() }
         }
     }
 
@@ -71,8 +73,10 @@ struct CoachView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(state.messages) { message in
-                        MessageBubble(message: message)
-                            .id(message.id)
+                        MessageBubble(message: message) { action in
+                            run(action)
+                        }
+                        .id(message.id)
                     }
 
                     if state.coachIsTyping {
@@ -170,6 +174,18 @@ struct CoachView: View {
         !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !state.coachIsTyping
     }
 
+    /// The coach offered to do something; do it.
+    private func run(_ action: CoachAction) {
+        Haptics.tap()
+        if case .openSimulator = action {
+            showingSimulator = true
+            return
+        }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            state.perform(action)
+        }
+    }
+
     private func send(_ text: String) {
         let question = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !state.coachIsTyping else { return }
@@ -182,6 +198,7 @@ struct CoachView: View {
 
 struct MessageBubble: View {
     let message: ChatMessage
+    var onAction: (CoachAction) -> Void = { _ in }
 
     private var isCoach: Bool { message.role == .coach }
 
@@ -202,6 +219,11 @@ struct MessageBubble: View {
             if let attachment = message.attachment {
                 AttachmentCard(attachment: attachment)
                     .frame(maxWidth: 300, alignment: .leading)
+            }
+
+            if let action = message.action {
+                Button(action.label) { onAction(action) }
+                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
             }
         }
         .frame(maxWidth: .infinity, alignment: isCoach ? .leading : .trailing)

@@ -95,7 +95,6 @@ final class LocalAuthService: AuthServicing {
             firstName: Self.displayName(from: email),
             lastName: "",
             email: email,
-            phone: nil,
             joinedAt: Date()
         )
         let digest = await Self.digest(password: password, salt: salt)

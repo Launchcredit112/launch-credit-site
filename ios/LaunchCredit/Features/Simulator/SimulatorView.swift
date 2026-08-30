@@ -18,8 +18,11 @@ struct SimulatorView: View {
         ScoreSimulator.project(
             .init(
                 startingScore: state.profile.score,
-                utilization: utilization,
-                currentUtilization: state.profile.utilization,
+                overallUtilization: utilization,
+                currentOverallUtilization: state.utilization,
+                // Moving the overall dial moves the strained card with it.
+                worstCardUtilization: min(worstCardNow, utilization / max(state.utilization, 0.01) * worstCardNow),
+                currentWorstCardUtilization: worstCardNow,
                 billsReported: Int(billsReported),
                 backdatedMonths: Int(backdatedMonths),
                 builderOpen: builderOpen,
@@ -28,6 +31,8 @@ struct SimulatorView: View {
             )
         )
     }
+
+    private var worstCardNow: Double { ScoreSimulator.worstUtilization(of: state.cards) }
 
     var body: some View {
         NavigationStack {
@@ -60,7 +65,7 @@ struct SimulatorView: View {
     private func loadCurrentState() {
         guard !loaded else { return }
         loaded = true
-        utilization = state.profile.utilization
+        utilization = state.utilization
         billsReported = Double(state.bills.filter { $0.state == .reporting }.count)
         backdatedMonths = Double(state.bills.filter { $0.state == .reporting }.map(\.backdatedMonths).max() ?? 0)
         onTimeMonths = Double(state.profile.onTimeStreakMonths)
@@ -160,7 +165,7 @@ struct SimulatorView: View {
         Card {
             VStack(alignment: .leading, spacing: 20) {
                 SimSlider(
-                    title: "Card utilization",
+                    title: "Overall utilization",
                     value: $utilization,
                     range: 0...1,
                     step: 0.01,

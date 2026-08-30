@@ -46,7 +46,7 @@ struct PlanView: View {
                                         fix: fix,
                                         isExpanded: expanded.contains(fix.id),
                                         onToggle: { toggle(fix) },
-                                        onDone: { state.setFixStatus(fix, to: .done) },
+                                        onDone: { Haptics.success(); state.setFixStatus(fix, to: .done) },
                                         onStart: { state.setFixStatus(fix, to: .inProgress) }
                                     )
                                 }

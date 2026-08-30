@@ -24,18 +24,27 @@ extension CreditProfile {
         return CreditProfile(
             score: 648,
             changeSinceStart: 36,
-            utilization: 0.28,
             previousUtilization: 0.87,
             onTimeStreakMonths: 6,
-            openAccounts: 4,
             history: history,
             bureaus: [
-                BureauScore(bureau: .experian, score: 651, change: 8, isReporting: true),
-                BureauScore(bureau: .equifax, score: 648, change: 6, isReporting: true),
-                BureauScore(bureau: .transUnion, score: 644, change: 7, isReporting: true)
+                BureauScore(bureau: .experian, score: 651, change: 8),
+                BureauScore(bureau: .equifax, score: 648, change: 6),
+                BureauScore(bureau: .transUnion, score: 644, change: 7)
             ],
             lastRefreshed: daysFromNow(-1)
         )
+    }
+}
+
+extension CreditCard {
+    /// $1,050 against $3,750 of limit — 28% overall, but one card is carrying
+    /// almost all of it, which is what the coach keeps pointing at.
+    static var seed: [CreditCard] {
+        [
+            CreditCard(name: "Visa ···4021", balance: 855, limit: 1_500, statementDay: 18),
+            CreditCard(name: "Amex ···1009", balance: 195, limit: 2_250, statementDay: 26)
+        ]
     }
 }
 
@@ -44,11 +53,11 @@ extension FixItem {
     static var seed: [FixItem] {
         [
             FixItem(
-                title: "Utilization at 87% on one card",
+                title: "One card carrying most of the balance",
                 pointCost: 48,
                 dollarCost: 1_240,
-                detail: "One card is carrying almost its whole limit. Scoring models read that as strain, and it is the fastest thing on your file to undo.",
-                move: "Pay $420 before the statement closes on the 18th to land under 30%.",
+                detail: "Your Visa is at 57% while the rest of your file is nearly clear. Scoring models read a single strained card as strain overall, and it is the fastest thing here to undo.",
+                move: "Pay it down under 30% of its limit before the statement closes.",
                 status: .inProgress
             ),
             FixItem(
@@ -89,13 +98,48 @@ extension FixItem {
 }
 
 extension NextMove {
-    static var seed: NextMove {
-        NextMove(
-            headline: "Pay $420 on your Visa",
-            detail: "Pay $420 on your Visa before the statement closes. Utilization drops under 30% and the change lands on your report next cycle.",
-            dueDate: daysFromNow(9),
-            estimatedPoints: 11
+    /// Derived from the file rather than written down, so the amount, the card
+    /// and the deadline are always the ones actually on the account.
+    static func thisWeek(cards: [CreditCard]) -> NextMove? {
+        guard let worst = cards.max(by: { $0.utilization < $1.utilization }),
+              worst.utilization > 0.30
+        else { return nil }
+
+        let payoff = worst.payoff(toReach: 0.29)
+        guard payoff > 0 else { return nil }
+
+        let rounded = payoff.roundedUpToNearest(5)
+        let due = worst.nextStatementDate()
+        let points = ScoreSimulator.pointsForPayingDown(cards: cards, amount: rounded, on: worst)
+
+        return NextMove(
+            headline: "Pay \(money(rounded)) on your \(worst.name)",
+            detail: "Your \(worst.name) is at \(percent(worst.utilization)) of its limit. Pay \(money(rounded)) before it reports and it lands under 30%, which shows up on your next cycle.",
+            dueDate: due,
+            estimatedPoints: points,
+            payment: rounded,
+            cardID: worst.id
         )
+    }
+}
+
+// MARK: - Small formatters shared by the seeded copy
+
+func money(_ value: Decimal) -> String {
+    value.formatted(.currency(code: "USD").precision(.fractionLength(0)))
+}
+
+func percent(_ value: Double) -> String {
+    "\(Int((value * 100).rounded()))%"
+}
+
+extension Decimal {
+    /// Advice reads better in round numbers than to the cent.
+    func roundedUpToNearest(_ step: Int) -> Decimal {
+        let stepValue = Decimal(step)
+        guard stepValue > 0 else { return self }
+        let quotient = NSDecimalNumber(decimal: self / stepValue).doubleValue
+        return Decimal(Int(quotient.rounded(.up))) * stepValue
     }
 }
 
@@ -106,8 +150,7 @@ extension BuilderAccount {
             tier: .basic,
             openedAt: monthsAgo(6),
             onTimePayments: 6,
-            nextPaymentDate: daysFromNow(12),
-            reportsTo: Bureau.allCases
+            nextPaymentDate: daysFromNow(12)
         )
     }
 }
