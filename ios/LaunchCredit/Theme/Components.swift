@@ -98,6 +98,56 @@ struct LineButtonStyle: ButtonStyle {
     }
 }
 
+/// A control that presses like a control. Used where the whole element is the
+/// target and a full button chrome would be too loud.
+struct PressableStyle: ButtonStyle {
+    var scale: CGFloat = 0.94
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.spring(response: 0.26, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Account avatar
+
+/// The member's initials over the brand gradient, with a hairline ring so it
+/// separates from a white ground, and a badge when something in the account
+/// needs their attention.
+struct AccountAvatar: View {
+    let initials: String
+    var size: CGFloat = 44
+    var showsBadge: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(initials)
+                .font(BrandFont.heading(size * 0.34, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: size, height: size)
+                .background(Brand.grad, in: Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.5), lineWidth: 1.5)
+                )
+                .shadow(color: Color(hex: 0x0050B8, alpha: 0.32), radius: 10, x: 0, y: 4)
+                .overlay(alignment: .topTrailing) {
+                    if showsBadge {
+                        Circle()
+                            .fill(Brand.orange)
+                            .frame(width: 11, height: 11)
+                            .overlay(Circle().stroke(Brand.bg, lineWidth: 2))
+                            .offset(x: 1, y: -1)
+                    }
+                }
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityLabel("Your account")
+        .accessibilityHint(showsBadge ? "Payment reminders are off" : "")
+    }
+}
+
 // MARK: - Card
 
 /// The site's card shell: white, hairline border, 22pt corners, soft shadow.

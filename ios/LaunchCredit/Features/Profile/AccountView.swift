@@ -49,11 +49,8 @@ struct AccountView: View {
 
     private var identity: some View {
         HStack(spacing: 14) {
-            Text(state.user?.initials ?? "L")
-                .font(BrandFont.heading(20))
-                .foregroundStyle(.white)
-                .frame(width: 54, height: 54)
-                .background(Brand.grad, in: Circle())
+            AccountAvatar(initials: state.user?.initials ?? "L", size: 54) { }
+                .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(state.user?.fullName ?? "Member")

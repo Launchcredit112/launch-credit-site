@@ -19,7 +19,10 @@ struct HomeView: View {
                         greeting
                         scoreCard
                         nextMoveCard
-                        bureausCard
+                        VStack(spacing: 12) {
+                            snapshotCard
+                            bureausCard
+                        }
                         simulatorCard
                         disclosure
                     }
@@ -37,29 +40,39 @@ struct HomeView: View {
     // MARK: - Greeting
 
     private var greeting: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(timeGreeting)
-                    .font(BrandFont.body(14, weight: .semibold))
-                    .foregroundStyle(Brand.faint)
-                Text(state.user?.firstName ?? "Welcome")
-                    .font(BrandFont.heading(26))
-                    .tracking(-0.7)
-                    .foregroundStyle(Brand.ink)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                (
+                    Text(timeGreeting + ", ").foregroundStyle(Brand.dim)
+                    + Text(state.user?.firstName ?? "there").foregroundStyle(Brand.ink)
+                )
+                .font(BrandFont.heading(19, weight: .semibold))
+                .tracking(-0.4)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Brand.greenBr)
+                        .frame(width: 6, height: 6)
+                    Text("Synced \(state.profile.lastRefreshed.formatted(.relative(presentation: .named)))")
+                        .font(BrandFont.body(12.5, weight: .medium))
+                        .foregroundStyle(Brand.faint)
+                }
             }
-            Spacer()
-            Button {
+
+            Spacer(minLength: 8)
+
+            AccountAvatar(
+                initials: state.user?.initials ?? "L",
+                // A quiet nudge toward the one setting that actually helps.
+                showsBadge: !state.remindersOn
+            ) {
+                Haptics.tap()
                 showingAccount = true
-            } label: {
-                Text(state.user?.initials ?? "L")
-                    .font(BrandFont.heading(15))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(Brand.grad, in: Circle())
             }
-            .accessibilityLabel("Your account")
         }
-        .padding(.top, 12)
+        .padding(.top, 8)
     }
 
     private var timeGreeting: String {
@@ -76,40 +89,37 @@ struct HomeView: View {
     /// whole picture without a scroll.
     private var scoreCard: some View {
         Card(padding: 22) {
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 ScoreDial(score: state.profile.score, change: state.profile.changeSinceStart)
-
                 ScoreTrendChart(points: state.profile.history)
+                Text("Last 12 months")
+                    .font(BrandFont.body(12.5, weight: .semibold))
+                    .foregroundStyle(Brand.faint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
 
-                HStack {
-                    Text("Last 12 months")
-                        .font(BrandFont.body(12.5, weight: .semibold))
-                        .foregroundStyle(Brand.faint)
-                    Spacer()
-                    Text("Updated \(state.profile.lastRefreshed.formatted(.dateTime.month(.abbreviated).day()))")
-                        .font(BrandFont.body(12.5))
-                        .foregroundStyle(Brand.faint)
-                }
-
-                Rectangle().fill(Brand.line).frame(height: 1)
-
-                HStack(alignment: .top, spacing: 10) {
-                    SnapshotStat(
-                        key: "Utilization",
-                        value: "\(Int((state.utilization * 100).rounded()))%",
-                        note: "Down from \(Int((state.profile.previousUtilization * 100).rounded()))%"
-                    )
-                    SnapshotStat(
-                        key: "Builder",
-                        value: state.builder.isOpen ? "Open" : "Opening",
-                        note: state.builder.isOpen ? "All 3 bureaus" : "Setting up"
-                    )
-                    SnapshotStat(
-                        key: "Rent",
-                        value: rentValue,
-                        note: "\(maxBackdate) mo backdated"
-                    )
-                }
+    /// The three numbers that explain the score, sitting directly above the
+    /// bureaus they are reported to.
+    private var snapshotCard: some View {
+        Card(padding: 18) {
+            HStack(alignment: .top, spacing: 10) {
+                SnapshotStat(
+                    key: "Utilization",
+                    value: "\(Int((state.utilization * 100).rounded()))%",
+                    note: "Down from \(Int((state.profile.previousUtilization * 100).rounded()))%"
+                )
+                SnapshotStat(
+                    key: "Builder",
+                    value: state.builder.isOpen ? "Open" : "Opening",
+                    note: state.builder.isOpen ? "Reporting" : "Setting up"
+                )
+                SnapshotStat(
+                    key: "Rent",
+                    value: rentValue,
+                    note: "\(maxBackdate) mo back"
+                )
             }
         }
     }
@@ -282,7 +292,8 @@ struct SnapshotStat: View {
             Text(note)
                 .font(BrandFont.body(11.5, weight: .medium))
                 .foregroundStyle(Brand.greenDk)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
