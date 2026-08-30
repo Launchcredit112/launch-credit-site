@@ -22,11 +22,13 @@ that the site does not already sell.
 | --- | --- | --- |
 | **Sign in** | Email + password. Accounts are created in the web checkout. | first screen, always |
 | **Home** | Score, 12-month trend and the three numbers behind it; this week's one move; all three bureaus | hero + "Inside the app" |
-| **Plan** | The diagnosis: every issue ranked by what it costs, each opening to the one move that fixes it | "Ranked by what it costs you" |
+| **Plan** | Your goal, then the diagnosis: every issue ranked by what it costs, each opening to the one move that fixes it | "Ranked by what it costs you" |
 | **Build** | The builder account, and rent / phone / power / internet switched on to report | "Build history, not debt" |
 | **Coach** | The AI coach, grounded in the member's real file | "AI coach, 24/7" |
 | **Account** | Plan and billing, what's included, disclosures, sign out — behind the avatar on Home | pricing card + footer legal |
 | **Simulator** | What-if projection — test a move before making it | "What-if simulator" |
+| **Your goal** | Pick the thing you're financing; get the score, the steps, the date and what waiting costs | "your step-by-step plan" |
+| **Card matches** | Cards matched to the file with the reason each was picked | "offers picked for you" |
 
 Deliberately **not** built: biometric unlock, in-app sign-up (the checkout
 collects SSN and address — that stays on the web), free-form bill entry,
@@ -82,6 +84,25 @@ real thing:
 - **`RemoteCoach`** — posts to your backend and **falls back to the on-device
   coach** on any failure, so a member always gets an answer.
 
+It does five things:
+
+1. **Payment reminders.** `ReminderService` derives the dates from the file —
+   statement dates (not due dates; whatever the balance is when it *closes* is
+   what reports), the builder payment, stalled bill verifications — and
+   schedules local notifications a few days ahead.
+2. **Tells them what's hurting.** A ranked diagnosis with the point cost and
+   the annual dollar cost of each issue, worst first.
+3. **Simulates the fixes.** "What will my score be after?" runs the whole open
+   list through `ScoreSimulator` and gives the number, the band, and an honest
+   timeline.
+4. **Goals.** "I want to finance a $30k car" → the score good terms need, the
+   APR at today's score versus that score, the monthly payment difference, the
+   lifetime cost of waiting, and the ordered steps to close the gap.
+   `GoalEngine` holds the rate bands and the amortisation.
+5. **Card recommendations.** `CardAdvisor` matches on score, file thickness and
+   what's being carried — a balance-transfer card when a card is strained, a
+   secured card under 620 — each with the reason, and commission disclosed.
+
 What makes the on-device coach worth having:
 
 - **It computes, it doesn't recite.** "How much should I pay?" returns the
@@ -91,9 +112,10 @@ What makes the on-device coach worth having:
 - **It carries the thread.** `CoachQuery` pulls dollar figures and target
   scores out of the sentence; `CoachIntent.classify` weighs phrases above
   words, and a bare follow-up ("how much?", "why?") inherits the last topic.
-- **It can act.** A reply may carry a `CoachAction` — mark this week's move
-  done, switch a bill on, open the simulator — rendered as one button under
-  the answer, so the member never goes hunting for the screen.
+- **It can act.** A reply may carry a `CoachAction` — mark the move done,
+  switch a bill on, track a goal, show card matches, turn reminders on —
+  rendered as one button under the answer, so the member never goes hunting
+  for the screen.
 - **It shares one model with the rest of the app.** Every point estimate,
   in chat, on Home and in the simulator, comes from `ScoreSimulator`, so the
   three can't quietly disagree.

@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
     @Published var nextMove: NextMove? = NextMove.thisWeek(cards: CreditCard.seed)
     @Published var builder: BuilderAccount = .seed
     @Published var bills: [BillAccount] = BillAccount.seed
+    @Published var goal: Goal?
+    @Published var remindersOn = false
     @Published var subscription: Subscription = .seed
 
     // MARK: - Coach
@@ -42,9 +44,19 @@ final class AppState: ObservableObject {
 
     var worstCard: CreditCard? { cards.max(by: { $0.utilization < $1.utilization }) }
 
+    /// The plan behind the member's goal, recomputed from the live file.
+    var goalPlan: GoalPlan? { goal.map { GoalEngine.plan(for: $0, context: coachContext) } }
+
+    var cardMatches: [CardRecommendation] { CardAdvisor.recommendations(for: coachContext) }
+
+    var upcomingReminders: [Reminder] {
+        ReminderService.upcoming(cards: cards, builder: builder, bills: bills, goal: goal)
+    }
+
     private let auth: AuthServicing
     private let coach: CoachEngine
     private let store = LocalStore()
+    private let reminders = ReminderService()
 
     init(auth: AuthServicing = LocalAuthService(), coach: CoachEngine = RemoteCoach()) {
         self.auth = auth
@@ -92,6 +104,8 @@ final class AppState: ObservableObject {
             nextMove = saved.nextMove
             builder = saved.builder
             bills = saved.bills
+            goal = saved.goal
+            remindersOn = saved.remindersOn
             subscription = saved.subscription
             messages = saved.messages
         }
@@ -108,6 +122,8 @@ final class AppState: ObservableObject {
                 nextMove: nextMove,
                 builder: builder,
                 bills: bills,
+                goal: goal,
+                remindersOn: remindersOn,
                 subscription: subscription,
                 // Keep the transcript bounded; the coach only needs recent context.
                 messages: Array(messages.suffix(80))
@@ -130,6 +146,7 @@ final class AppState: ObservableObject {
             bills: bills,
             fixes: fixes,
             nextMove: nextMove,
+            goal: goal,
             subscription: subscription
         )
     }
@@ -180,10 +197,57 @@ final class AppState: ObservableObject {
                 )
             )
 
-        case .openSimulator:
+        case .setGoal(let kind, let amount):
+            setGoal(Goal(kind: kind, amount: amount))
+            if let plan = goalPlan {
+                let line = plan.isReadyToday
+                    ? "Tracking it. You're already at the score for this — nothing to wait for."
+                    : "Tracking it. You'll see it at the top of your plan, with the \(plan.steps.filter { !$0.isDone }.count) steps that get you there."
+                messages.append(ChatMessage(role: .coach, text: line, suggestions: ["What's hurting my credit?"]))
+            }
+
+        case .enableReminders:
+            Task { await enableReminders() }
+
+        case .openSimulator, .showCardMatches:
             break  // presented by the view; nothing to change in state
         }
         persistMemberData()
+    }
+
+    // MARK: - Goal
+
+    func setGoal(_ newGoal: Goal?) {
+        goal = newGoal
+        persistMemberData()
+        if remindersOn { Task { await rescheduleReminders() } }
+    }
+
+    // MARK: - Reminders
+
+    func enableReminders() async {
+        let granted = await reminders.enable(reminders: upcomingReminders)
+        remindersOn = granted
+        messages.append(
+            ChatMessage(
+                role: .coach,
+                text: granted
+                    ? "Done. I'll nudge you a few days before each statement closes and before your builder payment — early enough to actually do something about it."
+                    : "Notifications are switched off for Launch in iOS Settings, so I can't send them. Turn them on there and ask me again.",
+                suggestions: ["What's my next move?"]
+            )
+        )
+        persistMemberData()
+    }
+
+    func disableReminders() async {
+        await reminders.disable()
+        remindersOn = false
+        persistMemberData()
+    }
+
+    private func rescheduleReminders() async {
+        await reminders.schedule(upcomingReminders)
     }
 
     /// Lets any screen hand a question to the coach — tapping "Ask why" on
@@ -206,6 +270,7 @@ final class AppState: ObservableObject {
     /// utilization, the score and the *next* move all move together — the file
     /// stays true instead of the checkbox drifting away from it.
     func completeNextMove() {
+        defer { if remindersOn { Task { await rescheduleReminders() } } }
         guard let move = nextMove, !move.isDone else { return }
 
         if let payment = move.payment,
@@ -259,6 +324,8 @@ private struct MemberSnapshot: Codable {
     var nextMove: NextMove?
     var builder: BuilderAccount
     var bills: [BillAccount]
+    var goal: Goal?
+    var remindersOn: Bool
     var subscription: Subscription
     var messages: [ChatMessage]
 }

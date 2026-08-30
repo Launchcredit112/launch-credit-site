@@ -7,6 +7,8 @@ struct CoachView: View {
     @EnvironmentObject private var state: AppState
     @State private var draft = ""
     @State private var showingSimulator = false
+    @State private var showingMatches = false
+    @State private var showingGoal = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +24,8 @@ struct CoachView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingSimulator) { SimulatorView() }
+            .sheet(isPresented: $showingMatches) { CardMatchesView() }
+            .sheet(isPresented: $showingGoal) { GoalSetupView() }
         }
     }
 
@@ -177,12 +181,15 @@ struct CoachView: View {
     /// The coach offered to do something; do it.
     private func run(_ action: CoachAction) {
         Haptics.tap()
-        if case .openSimulator = action {
+        switch action {
+        case .openSimulator:
             showingSimulator = true
-            return
-        }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            state.perform(action)
+        case .showCardMatches:
+            showingMatches = true
+        default:
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                state.perform(action)
+            }
         }
     }
 

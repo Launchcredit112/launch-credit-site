@@ -289,12 +289,18 @@ enum CoachAction: Codable, Equatable {
     case markMoveDone
     case turnOnBill(BillAccount.Kind)
     case openSimulator
+    case setGoal(Goal.Kind, Decimal)
+    case showCardMatches
+    case enableReminders
 
     var label: String {
         switch self {
-        case .markMoveDone:        return "Mark it done"
-        case .turnOnBill(let kind): return "Turn on \(kind.label.lowercased())"
-        case .openSimulator:       return "Open the simulator"
+        case .markMoveDone:          return "Mark it done"
+        case .turnOnBill(let kind):  return "Turn on \(kind.label.lowercased())"
+        case .openSimulator:         return "Open the simulator"
+        case .setGoal(let kind, _):  return "Track \(kind.title.lowercased())"
+        case .showCardMatches:       return "See the matches"
+        case .enableReminders:       return "Remind me"
         }
     }
 }

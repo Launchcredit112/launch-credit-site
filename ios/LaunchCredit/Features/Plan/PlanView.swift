@@ -5,6 +5,8 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject private var state: AppState
     @State private var expanded: Set<UUID> = []
+    @State private var showingGoal = false
+    @State private var showingMatches = false
 
     private var openFixes: [FixItem] {
         state.fixes.filter { $0.status != .done }.sorted { $0.pointCost > $1.pointCost }
@@ -18,6 +20,11 @@ struct PlanView: View {
         openFixes.reduce(0) { $0 + $1.pointCost }
     }
 
+    /// Where the member lands if they clear the whole list.
+    private var projectedScore: Int {
+        min(850, state.profile.score + totalCost)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -26,13 +33,14 @@ struct PlanView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Metrics.sectionGap) {
                         SectionHeader(
-                            eyebrow: "Your fix list",
+                            eyebrow: "Your plan",
                             plain: "Ranked by what it",
                             italic: "costs you.",
                             sub: "Not a wall of numbers. A short list, hardest-hitting first, with the exact move that fixes each one."
                         )
                         .padding(.top, 14)
 
+                        goalCard
                         summaryCard
 
                         if !openFixes.isEmpty {
@@ -75,6 +83,101 @@ struct PlanView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showingGoal) { GoalSetupView() }
+            .sheet(isPresented: $showingMatches) { CardMatchesView() }
+        }
+    }
+
+    // MARK: - Goal
+
+    /// The plan reads better backwards: what you're aiming at, then what stands
+    /// between you and it.
+    @ViewBuilder
+    private var goalCard: some View {
+        if let plan = state.goalPlan {
+            Button { showingGoal = true } label: {
+                Card(padding: 20, background: Brand.ink) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 8) {
+                            Image(systemName: plan.goal.kind.symbol)
+                                .font(.system(size: 12, weight: .bold))
+                            Text("YOUR GOAL")
+                                .font(BrandFont.heading(11, weight: .bold))
+                                .tracking(1.8)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .opacity(0.5)
+                        }
+                        .foregroundStyle(Brand.greenLt)
+
+                        Text(plan.goal.title)
+                            .font(BrandFont.heading(22))
+                            .tracking(-0.5)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+
+                        HStack(alignment: .top, spacing: 0) {
+                            GoalStat(label: "Now", value: "\(plan.currentScore)")
+                            GoalStat(label: "Need", value: "\(plan.targetScore)", tint: Brand.greenLt)
+                            GoalStat(
+                                label: plan.isReadyToday ? "Status" : "About",
+                                value: plan.isReadyToday ? "Ready" : (plan.monthsToTarget.map { "\($0) mo" } ?? "—")
+                            )
+                        }
+
+                        if let today = plan.todayTerms, let target = plan.targetTerms, let saving = plan.lifetimeSaving {
+                            Text("At \(plan.currentScore) that's \(money(today.monthlyPayment))/mo at \(today.aprText). At \(plan.targetScore) it's \(money(target.monthlyPayment))/mo — **\(money(saving)) less** over the loan.")
+                                .font(BrandFont.body(13.5))
+                                .foregroundStyle(Color.white.opacity(0.75))
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if !plan.isReadyToday {
+                            GoalProgressTrack(current: plan.currentScore, target: plan.targetScore, projected: plan.projectedScore)
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            if !state.cardMatches.isEmpty {
+                ToolCard(
+                    icon: "creditcard.fill",
+                    title: "Card matches",
+                    subtitle: "\(state.cardMatches.count) that fit your file, and why.",
+                    tint: Brand.wash,
+                    iconTint: Brand.greenDk
+                ) { showingMatches = true }
+            }
+        } else {
+            Button { showingGoal = true } label: {
+                Card(padding: 18) {
+                    HStack(spacing: 13) {
+                        Image(systemName: "flag.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Brand.iris)
+                            .frame(width: 42, height: 42)
+                            .background(Brand.irisWash, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("What are you building toward?")
+                                .font(BrandFont.heading(16))
+                                .foregroundStyle(Brand.ink)
+                            Text("A car, a house, an apartment. I'll work the plan backwards from it.")
+                                .font(BrandFont.body(13))
+                                .foregroundStyle(Brand.dim)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 6)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Brand.faint)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -102,13 +205,14 @@ struct PlanView: View {
                         .font(BrandFont.heading(10.5, weight: .bold))
                         .tracking(1.5)
                         .foregroundStyle(Brand.faint)
-                    Text("\(min(850, state.profile.score + totalCost))")
+                    Text("\(projectedScore)")
                         .font(BrandFont.number(30))
                         .tracking(-1)
                         .foregroundStyle(Brand.greenDk)
-                    Text("from \(state.profile.score) today")
+                    Text("\(creditBand(for: projectedScore)), from \(creditBand(for: state.profile.score).lowercased())")
                         .font(BrandFont.body(13))
                         .foregroundStyle(Brand.dim)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -226,6 +330,69 @@ struct DoneFixRow: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Brand.s1, in: RoundedRectangle(cornerRadius: Metrics.radiusTile, style: .continuous))
+    }
+}
+
+/// One of the three figures across the goal card.
+struct GoalStat: View {
+    let label: String
+    let value: String
+    var tint: Color = .white
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(BrandFont.heading(9.5, weight: .bold))
+                .tracking(1.3)
+                .foregroundStyle(Color.white.opacity(0.5))
+            Text(value)
+                .font(BrandFont.number(22))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Where the score sits between today and the goal, with the ghost of where
+/// the plan would put it.
+struct GoalProgressTrack: View {
+    let current: Int
+    let target: Int
+    let projected: Int
+
+    private var floor: Int { max(300, min(current, target) - 40) }
+
+    private func fraction(_ score: Int) -> Double {
+        let span = Double(max(1, target - floor))
+        return min(1, max(0, Double(score - floor) / span))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.16))
+                    Capsule()
+                        .fill(Color.white.opacity(0.28))
+                        .frame(width: fraction(projected) * geo.size.width)
+                    Capsule()
+                        .fill(Brand.grad)
+                        .frame(width: fraction(current) * geo.size.width)
+                }
+            }
+            .frame(height: 8)
+
+            Text(projected >= target
+                 ? "The steps below are enough to get you there."
+                 : "The steps below get you to about \(projected). The rest is time.")
+                .font(BrandFont.body(12))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Score \(current) of \(target) needed, projected \(projected)")
     }
 }
 

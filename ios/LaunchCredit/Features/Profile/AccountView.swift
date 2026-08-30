@@ -17,6 +17,7 @@ struct AccountView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         identity
+                        remindersCard
                         planCard
                         disclosures
                         Button("Sign out") { confirmingSignOut = true }
@@ -67,6 +68,53 @@ struct AccountView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Reminders
+
+    /// The dates are already on the member's accounts. All the app has to do is
+    /// not let them pass quietly.
+    private var remindersCard: some View {
+        Card(padding: 18) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Payment reminders")
+                            .font(BrandFont.heading(16))
+                            .foregroundStyle(Brand.ink)
+                        Text("A nudge a few days before each statement closes and before your builder payment.")
+                            .font(BrandFont.body(12.5))
+                            .foregroundStyle(Brand.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                    Toggle("", isOn: Binding(
+                        get: { state.remindersOn },
+                        set: { newValue in
+                            Haptics.tap()
+                            Task { newValue ? await state.enableReminders() : await state.disableReminders() }
+                        }
+                    ))
+                    .labelsHidden()
+                    .tint(Brand.green)
+                }
+
+                if state.remindersOn, !state.upcomingReminders.isEmpty {
+                    Rectangle().fill(Brand.line).frame(height: 1)
+                    VStack(spacing: 0) {
+                        let queued = Array(state.upcomingReminders.prefix(3))
+                        ForEach(Array(queued.enumerated()), id: \.element.id) { index, reminder in
+                            StatRow(label: reminder.title, showsDivider: index < queued.count - 1) {
+                                Chip(
+                                    text: reminder.daysAway <= 0 ? "Today" : "in \(reminder.daysAway)d",
+                                    tone: reminder.daysAway <= 3 ? .cost : .neutral
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Plan

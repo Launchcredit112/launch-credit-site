@@ -17,6 +17,7 @@ struct CoachContext {
     var bills: [BillAccount]
     var fixes: [FixItem]
     var nextMove: NextMove?
+    var goal: Goal?
     var subscription: Subscription
 
     var utilization: Double { ScoreSimulator.utilization(of: cards) }
@@ -60,7 +61,7 @@ struct CoachQuery {
 
         // A figure written with a dollar sign is always money. Without one, the
         // surrounding words decide: you pay an amount, you reach a score.
-        let numbers = Self.numbers(in: lowered)
+        let numbers = Self.numbers(in: Self.expandThousands(lowered))
         let saysMoney = ["pay", "paid", "paying", "payment", "put", "spend", "afford", "$"].contains { lowered.contains($0) }
         let saysScore = ["score", "reach", "get to", "hit", "until", "till", "up to"].contains { lowered.contains($0) }
 
@@ -82,6 +83,23 @@ struct CoachQuery {
     }
 
     private struct Number { let value: Int; let hadDollarSign: Bool }
+
+    /// "30k" and "320k" are how people actually write these.
+    private static func expandThousands(_ text: String) -> String {
+        var out = ""
+        var digits = ""
+        for character in text {
+            if character.isNumber { digits.append(character); out.append(character); continue }
+            if (character == "k" || character == "K"), !digits.isEmpty {
+                out.append("000")
+                digits = ""
+                continue
+            }
+            if character != "," { digits = "" }
+            out.append(character)
+        }
+        return out
+    }
 
     private static func numbers(in text: String) -> [Number] {
         var results: [Number] = []
@@ -132,6 +150,11 @@ enum CoachIntent: String, CaseIterable {
     case bills
     case builder
     case nextMove
+    case diagnosis
+    case projection
+    case goal
+    case cards
+    case reminders
     case timeline
     case bureaus
     case billing
@@ -154,6 +177,11 @@ enum CoachIntent: String, CaseIterable {
         case .bills:        return ["my rent", "phone bill", "power bill", "electric bill", "internet bill", "add a bill", "turn on", "which bills", "report my rent", "back date", "backdate"]
         case .builder:      return ["builder account", "credit builder", "my tradeline", "reported line"]
         case .nextMove:     return ["next move", "next step", "what should i do", "what do i do", "this week", "this month", "my plan", "one move", "why that one", "why that first", "why this one", "what's after that", "whats after that"]
+        case .diagnosis:    return ["what's hurting", "whats hurting", "what is hurting", "what's holding", "whats holding", "holding me back", "analyse my credit", "analyze my credit", "what's wrong with", "whats wrong with", "why is my score", "what's dragging", "whats dragging"]
+        case .projection:   return ["what will my score", "where will i be", "if i fix everything", "if i do everything", "after i fix", "after all that", "fix it all", "do all of it", "how high can"]
+        case .goal:         return ["i want to buy", "i want to finance", "want to get a", "finance a car", "buy a car", "buy a house", "buy a home", "get a mortgage", "a mortgage", "new car", "personal loan", "rent an apartment", "my goal", "set a goal", "qualify for"]
+        case .cards:        return ["which card", "what card", "recommend a card", "best card for me", "card should i get", "cards fit", "card matches", "apply for a card", "a new credit card"]
+        case .reminders:    return ["remind me", "notify me", "send me a reminder", "turn on reminders", "payment reminders", "before it's due", "before its due"]
         case .timeline:     return ["how long", "how many months", "how soon", "how fast", "by when", "when will i"]
         case .bureaus:      return ["all three", "all 3", "the bureaus", "which bureau", "reporting to"]
         case .billing:      return ["how much is launch", "my subscription", "cancel my", "next charge", "what am i paying", "billed"]
@@ -177,6 +205,11 @@ enum CoachIntent: String, CaseIterable {
         case .bills:        return ["rent", "bill", "bills", "utility", "utilities", "landlord", "lease", "internet", "power"]
         case .builder:      return ["builder", "tradeline", "partner"]
         case .nextMove:     return ["next", "todo", "step", "plan"]
+        case .diagnosis:    return ["hurting", "holding", "dragging", "diagnosis", "analyze", "analyse", "wrong"]
+        case .projection:   return ["projected", "potential"]
+        case .goal:         return ["goal", "car", "house", "home", "mortgage", "finance", "qualify"]
+        case .cards:        return ["recommend", "recommendation", "recommendations"]
+        case .reminders:    return ["remind", "reminder", "reminders", "notification", "notifications", "alerts"]
         case .timeline:     return ["long", "soon", "months", "timeline"]
         case .bureaus:      return ["bureau", "bureaus", "experian", "equifax", "transunion"]
         case .billing:      return ["price", "cost", "charge", "billing", "subscription", "cancel", "refund", "free"]
@@ -366,6 +399,112 @@ struct OnDeviceCoach: CoachEngine {
                 action: .markMoveDone
             )
 
+        case .diagnosis:
+            let open = c.fixes.filter { $0.status != .done }.sorted { $0.pointCost > $1.pointCost }
+            guard let worst = open.first else {
+                return reply("Nothing is dragging on your file right now — everything I flagged is handled. From here it's the streak seasoning, which just takes months.", suggestions: ["What will my score be?", "Am I ready to apply?"])
+            }
+            let total = open.reduce(0) { $0 + $1.pointCost }
+            var text = "Three things, worst first.\n\n"
+            for (index, fix) in open.prefix(3).enumerated() {
+                text += "**\(index + 1). \(fix.title)** — costing about \(fix.pointCost) points"
+                text += fix.dollarCost > 0 ? ", roughly \(money(Decimal(fix.dollarCost))) a year in interest.\n" : ".\n"
+            }
+            text += "\nAll in, that's **\(total) points** on the table, which would put you at \(min(850, c.score + total)). Start with \(worst.title.lowercased()) — it's the one that pays this month."
+            return reply(
+                text,
+                attachment: .init(title: "Holding you back", value: "−\(total) pts", subtitle: "\(open.count) open · \(min(850, c.score + total)) if all fixed"),
+                suggestions: ["What will my score be?", "How much should I pay?"]
+            )
+
+        case .projection:
+            let open = c.fixes.filter { $0.status != .done }
+            let gain = open.reduce(0) { $0 + $1.pointCost }
+            guard gain > 0 else {
+                return reply("You're already through the list. At \(c.score) the rest comes from time — the history seasoning month over month.", suggestions: ["How long to 700?"])
+            }
+            let projected = min(850, c.score + gain)
+            let fastest = ScoreSimulator.monthsToReach(projected, from: c.history)
+            var text = "Clear all \(open.count) and you land around **\(projected)** — \(creditBand(for: projected).lowercased()), up from \(creditBand(for: c.score).lowercased())."
+            text += fastest.map { " Realistically \($0) months, because the utilization piece re-scores in weeks and the history piece can't be rushed." } ?? ""
+            text += " Run it in the simulator if you want to see which fix carries which points."
+            return reply(
+                text,
+                attachment: .init(title: "If you clear the list", value: "\(projected)", subtitle: "From \(c.score) · \(signed(gain)) points"),
+                suggestions: ["What's hurting my credit?", "What's my next move?"],
+                action: .openSimulator
+            )
+
+        case .goal:
+            // Work out what they want, and for how much.
+            let kind = detectGoalKind(query) ?? c.goal?.kind
+            guard let kind else {
+                return reply(
+                    "Tell me what you're aiming at and I'll build the plan backwards from it — a car, a house, an apartment, or just a real credit card. A number helps too, like \"a $30k car\".",
+                    suggestions: ["Finance a $30k car", "Get a mortgage", "Rent an apartment"]
+                )
+            }
+            let amount = query.amount.map { max($0, 1_000) }
+                ?? (c.goal?.kind == kind ? c.goal?.amount : nil)
+                ?? kind.defaultAmount
+            let goal = Goal(kind: kind, amount: amount)
+            let plan = GoalEngine.plan(for: goal, context: c)
+
+            var text: String
+            if let today = plan.todayTerms, let target = plan.targetTerms, let saving = plan.lifetimeSaving {
+                text = "**\(money(goal.amount)) \(kind == .mortgage ? "mortgage" : "car")** at \(c.score): about \(today.aprText) — **\(money(today.monthlyPayment)) a month**.\n\n"
+                text += "At \(plan.targetScore) it's \(target.aprText) — \(money(target.monthlyPayment)) a month. Same \(kind == .mortgage ? "house" : "car"), **\(money(saving)) less** over the loan.\n\n"
+            } else {
+                text = "For \(kind.title.lowercased()), landlords and issuers want around **\(plan.targetScore)**. You're at \(c.score).\n\n"
+            }
+
+            if plan.isReadyToday {
+                text += "You're already there. Nothing to wait for."
+            } else {
+                text += "You need **\(plan.pointsNeeded) points**"
+                text += plan.monthsToTarget.map { ", about \($0) months on the plan below." } ?? "."
+            }
+            return reply(
+                text,
+                attachment: .init(
+                    title: goal.title,
+                    value: plan.isReadyToday ? "Ready" : "\(plan.pointsNeeded) pts",
+                    subtitle: plan.monthsToTarget.map { "≈ \($0) months to \(plan.targetScore)" } ?? "Target \(plan.targetScore)"
+                ),
+                suggestions: ["What's hurting my credit?", "Which card should I get?"],
+                action: .setGoal(kind, amount)
+            )
+
+        case .cards:
+            let matches = CardAdvisor.recommendations(for: c)
+            guard let best = matches.first else {
+                return reply(CardAdvisor.readinessNote(for: c), suggestions: ["What's my next move?", "Am I ready to apply?"])
+            }
+            var text = "\(matches.count == 1 ? "One" : "\(matches.count)") that fit your file right now. The one I'd start with:\n\n"
+            text += "**\(best.name)** — \(best.highlight).\n\(best.why)"
+            if best.paysCommission { text += "\n\nWe earn a commission if you're approved. Saying so is the deal." }
+            return reply(
+                text,
+                attachment: .init(title: best.name, value: best.kind.label, subtitle: best.highlight),
+                suggestions: ["Will applying hurt my score?", "What's my next move?"],
+                action: .showCardMatches
+            )
+
+        case .reminders:
+            let upcoming = ReminderService.upcoming(cards: c.cards, builder: c.builder, bills: c.bills, goal: c.goal)
+            guard let next = upcoming.first else {
+                return reply("Nothing dated coming up. I'll still nudge you when a statement is about to close.", suggestions: ["What's my next move?"])
+            }
+            var text = "I'll nudge you a few days before each one. Next up: **\(next.title.lowercased())**, \(next.daysAway <= 0 ? "today" : "in \(next.daysAway) days")."
+            if upcoming.count > 1 { text += " There are \(upcoming.count) on the calendar." }
+            text += "\n\nThe one that matters most is the statement date, not the due date — whatever the balance is when it closes is what the bureaus see."
+            return reply(
+                text,
+                attachment: .init(title: next.title, value: next.daysAway <= 0 ? "Today" : "\(next.daysAway)d", subtitle: next.detail),
+                suggestions: ["What's my next move?", "How much should I pay?"],
+                action: .enableReminders
+            )
+
         case .timeline:
             let target = query.targetScore ?? nextBand(from: c.score)?.threshold
             guard let target, target > c.score else {
@@ -453,6 +592,18 @@ struct OnDeviceCoach: CoachEngine {
                 suggestions: ["What's my next move?", "How much should I pay?", "How long to 700?"]
             )
         }
+    }
+
+    /// What are they aiming at? Checked most-specific first so "buy a house"
+    /// never lands on the rental branch.
+    static func detectGoalKind(_ query: CoachQuery) -> Goal.Kind? {
+        let text = query.text
+        if ["mortgage", "house", "home", "condo"].contains(where: { text.contains(" " + $0) }) { return .mortgage }
+        if ["car", "auto", "vehicle", "truck", "suv"].contains(where: { text.contains(" " + $0) }) { return .auto }
+        if text.contains("apartment") || text.contains("rent a place") || text.contains("a lease") { return .rental }
+        if text.contains("personal loan") { return .personal }
+        if text.contains("credit card") || text.contains("a card") { return .card }
+        return nil
     }
 
     // MARK: - Building a reply
