@@ -15,17 +15,24 @@ signing team required for the simulator. Deployment target is iOS 17.
 
 ## What's in it
 
-| Screen | What it does | Comes from the site |
+Four tabs, because the site promises four things. Nothing in the app exists
+that the site does not already sell.
+
+| Screen | What it does | On the site as |
 | --- | --- | --- |
-| **Login** | Email + password, Face ID / Touch ID unlock, sign-up | first screen, always |
-| **Sign up** | Name, email, password, consent — step one of web checkout | `checkout.html` |
-| **Home** | Score dial, 12-month trend, this week's one move, hero stat tiles, three-bureau panel | hero + "Inside the app" |
-| **Plan** | The diagnosis: every issue ranked by what it costs, with the one move that fixes each | "Ranked by what it costs you" |
-| **Build** | Builder account (Basic / Premium / Ultimate) and rent + bill reporting with backdating | "Build history, not debt" |
-| **Coach** | The AI coach — chat grounded in the member's real file | "AI coach, 24/7" |
-| **You** | Plan and billing, settings, disclosures, sign out, delete account | pricing card + legal |
-| **Simulator** | What-if projection — test a move before making it | free score check |
+| **Sign in** | Email + password. Accounts are created in the web checkout. | first screen, always |
+| **Home** | Score, 12-month trend and the three numbers behind it; this week's one move; all three bureaus | hero + "Inside the app" |
+| **Plan** | The diagnosis: every issue ranked by what it costs, each opening to the one move that fixes it | "Ranked by what it costs you" |
+| **Build** | The builder account, and rent / phone / power / internet switched on to report | "Build history, not debt" |
+| **Coach** | The AI coach, grounded in the member's real file | "AI coach, 24/7" |
+| **Account** | Plan and billing, what's included, disclosures, sign out — behind the avatar on Home | pricing card + footer legal |
+| **Simulator** | What-if projection — test a move before making it | "What-if simulator" |
 | **Marketplace** | Offers that unlock at the right score, with commission disclosed | "Offers picked for you" |
+
+Deliberately **not** built, because the site does not offer them: biometric
+unlock, in-app sign-up (the checkout collects SSN and address — that stays on
+the web), free-form bill entry, changing the builder tier after checkout, and
+account deletion.
 
 ## Architecture
 
@@ -83,19 +90,24 @@ No key is ever compiled into the binary. Expected contract:
 
 ## Accounts and data
 
+The app only ever signs in — accounts are created in the web checkout, which
+collects the identity and consents the credit partner needs.
+
 - Passwords are **never stored** — only a salted, 50k-round SHA-256 digest in
   the keychain, compared in constant time.
 - The session flag lives in `UserDefaults`; everything sensitive is keychain.
-- Member data is cached locally and wiped by "Delete account".
 
-`LocalAuthService` is a device-local stand-in so the app runs end to end today.
-Point `AuthServicing` at the Launch API and no view changes.
+`LocalAuthService` is a device-local stand-in for that API, so the app runs end
+to end today: **the first sign-in on a device provisions the member** from the
+email you give it (any valid address, any password of 8+ characters including a
+number), and every sign-in after that is checked against it. Point
+`AuthServicing` at the real endpoint and no view changes.
 
 ## Before shipping
 
 - [ ] Replace `LocalAuthService` and the seed data with real API calls
 - [ ] Set `DEVELOPMENT_TEAM` and a real `PRODUCT_BUNDLE_IDENTIFIER`
 - [ ] Add the brand fonts (and confirm their licences)
-- [ ] Wire the payment method and cancellation flows in **You**
+- [ ] Point the sign-up link at the live checkout URL if it ever moves
 - [ ] Have compliance review the disclosure copy — it repeats the site's
       "credit-building, not credit repair" language and should stay in sync

@@ -167,29 +167,25 @@ struct BuilderAccount: Codable, Equatable {
 
 struct BillAccount: Codable, Equatable, Identifiable {
     enum Kind: String, Codable, CaseIterable, Identifiable {
-        case rent, phone, power, internet, water, insurance
+        case rent, phone, power, internet
 
         var id: String { rawValue }
 
         var label: String {
             switch self {
-            case .rent:      return "Rent"
-            case .phone:     return "Phone"
-            case .power:     return "Power"
-            case .internet:  return "Internet"
-            case .water:     return "Water"
-            case .insurance: return "Insurance"
+            case .rent:     return "Rent"
+            case .phone:    return "Phone"
+            case .power:    return "Power"
+            case .internet: return "Internet"
             }
         }
 
         var symbol: String {
             switch self {
-            case .rent:      return "house.fill"
-            case .phone:     return "iphone"
-            case .power:     return "bolt.fill"
-            case .internet:  return "wifi"
-            case .water:     return "drop.fill"
-            case .insurance: return "shield.lefthalf.filled"
+            case .rent:     return "house.fill"
+            case .phone:    return "iphone"
+            case .power:    return "bolt.fill"
+            case .internet: return "wifi"
             }
         }
     }

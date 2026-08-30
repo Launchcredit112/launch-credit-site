@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// The four things Launch does — diagnose, build, coach, and the plan behind
-/// them — plus the member's account.
+/// The four things Launch does, one per tab — diagnose, build, report, coach —
+/// with build and report sharing a tab because they are one job to a member.
+/// The account lives behind the avatar on Home, where iOS members look for it.
 struct MainTabView: View {
-    @EnvironmentObject private var state: AppState
     @State private var selection: Tab = .home
 
-    enum Tab: Hashable { case home, plan, build, coach, you }
+    enum Tab: Hashable { case home, plan, build, coach }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -25,10 +25,6 @@ struct MainTabView: View {
             CoachView()
                 .tabItem { Label("Coach", systemImage: "bubble.left.and.text.bubble.right.fill") }
                 .tag(Tab.coach)
-
-            ProfileView()
-                .tabItem { Label("You", systemImage: "person.crop.circle") }
-                .tag(Tab.you)
         }
         .tint(Brand.green)
     }

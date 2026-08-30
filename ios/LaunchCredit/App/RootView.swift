@@ -14,7 +14,7 @@ struct RootView: View {
                 MainTabView()
                     .transition(.opacity.combined(with: .scale(scale: 1.02)))
             } else {
-                AuthFlowView()
+                LoginView()
                     .transition(.opacity)
             }
         }

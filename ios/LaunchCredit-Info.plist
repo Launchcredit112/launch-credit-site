@@ -45,8 +45,6 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Face ID unlocks your Launch account without typing your password.</string>
 	<!-- Optional. Point this at the Launch coach API to route the AI coach
 	     through your backend; leave empty to use the on-device coach.
 	     The bearer token is read from the keychain, never from this file. -->

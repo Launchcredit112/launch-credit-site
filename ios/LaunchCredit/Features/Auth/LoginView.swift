@@ -1,14 +1,13 @@
 import SwiftUI
-import LocalAuthentication
 
+/// The first thing anyone sees. Accounts are created on the web — the checkout
+/// there collects the identity and consents the credit partner needs — so the
+/// app signs in and gets out of the way.
 struct LoginView: View {
     @EnvironmentObject private var state: AppState
-    @Binding var showingSignUp: Bool
 
     @State private var email = ""
     @State private var password = ""
-    @State private var emailError: String?
-    @State private var passwordError: String?
     @State private var isWorking = false
     @State private var appeared = false
 
@@ -18,12 +17,20 @@ struct LoginView: View {
         static let password = "password"
     }
 
+    /// Accounts are created in the web checkout, which collects the identity
+    /// and consents the credit partner needs.
+    private static let signUpURL = URL(string: "https://launch.credit/checkout.html")
+
+    private var canSubmit: Bool {
+        !email.isEmpty && !password.isEmpty && !isWorking
+    }
+
     var body: some View {
         ZStack {
             MeshBackground()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 30) {
                     header
                     form
                     footer
@@ -33,14 +40,11 @@ struct LoginView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             if let stored = state.storedEmail, email.isEmpty { email = stored }
             withAnimation(.spring(response: 0.6, dampingFraction: 0.85).delay(0.05)) { appeared = true }
         }
     }
-
-    // MARK: - Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -51,7 +55,7 @@ struct LoginView: View {
                     .tracking(-0.4)
                     .foregroundStyle(Brand.ink)
             }
-            .padding(.top, 24)
+            .padding(.top, 40)
 
             Headline(plain: "Welcome", italic: "back.", size: 40)
 
@@ -62,10 +66,7 @@ struct LoginView: View {
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 16)
-        .padding(.bottom, 30)
     }
-
-    // MARK: - Form
 
     private var form: some View {
         VStack(spacing: 14) {
@@ -74,7 +75,6 @@ struct LoginView: View {
                 text: $email,
                 keyboard: .emailAddress,
                 contentType: .username,
-                errorMessage: emailError,
                 focusBinding: $focus,
                 focusID: Field.email
             )
@@ -86,27 +86,17 @@ struct LoginView: View {
                 text: $password,
                 isSecure: true,
                 contentType: .password,
-                errorMessage: passwordError,
                 focusBinding: $focus,
                 focusID: Field.password
             )
             .submitLabel(.go)
             .onSubmit { attemptSignIn() }
 
-            HStack {
-                Spacer()
-                Button("Forgot password?") { }
-                    .font(BrandFont.body(14, weight: .semibold))
-                    .foregroundStyle(Brand.greenDk)
-            }
-            .padding(.top, -2)
-
             if let error = state.authError {
                 Text(error)
                     .font(BrandFont.body(14, weight: .medium))
                     .foregroundStyle(Brand.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 2)
                     .transition(.opacity)
             }
 
@@ -114,73 +104,51 @@ struct LoginView: View {
                 attemptSignIn()
             } label: {
                 HStack(spacing: 10) {
-                    if isWorking {
-                        ProgressView().tint(.white)
-                    }
+                    if isWorking { ProgressView().tint(.white) }
                     Text(isWorking ? "Signing in…" : "Sign in")
                 }
             }
             .buttonStyle(PrimaryButtonStyle())
-            .disabled(isWorking)
-            .padding(.top, 6)
-
-            if state.hasStoredAccount && biometricsAvailable {
-                Button {
-                    Task {
-                        isWorking = true
-                        _ = await state.signInWithBiometrics()
-                        isWorking = false
-                    }
-                } label: {
-                    HStack(spacing: 9) {
-                        Image(systemName: biometryIsFaceID ? "faceid" : "touchid")
-                        Text("Sign in with \(biometryIsFaceID ? "Face ID" : "Touch ID")")
-                    }
-                }
-                .buttonStyle(LineButtonStyle())
-                .disabled(isWorking)
-            }
+            .disabled(!canSubmit)
+            .opacity(canSubmit ? 1 : 0.55)
+            .padding(.top, 4)
         }
+        .animation(.easeOut(duration: 0.2), value: state.authError)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 22)
     }
 
-    // MARK: - Footer
-
     private var footer: some View {
-        VStack(spacing: 22) {
-            HStack(spacing: 6) {
+        VStack(spacing: 18) {
+            HStack(spacing: 5) {
                 Text("New to Launch?")
                     .font(BrandFont.body(15))
                     .foregroundStyle(Brand.dim)
-                Button("Create an account") { showingSignUp = true }
-                    .font(BrandFont.body(15, weight: .bold))
-                    .foregroundStyle(Brand.greenDk)
-            }
-
-            Card(padding: 16, background: Brand.wash.opacity(0.7)) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Brand.greenDk)
-                    Text("Checking your credit with Launch is a soft pull. It never lowers your score.")
-                        .font(BrandFont.body(13.5, weight: .medium))
-                        .foregroundStyle(Brand.dim)
-                        .fixedSize(horizontal: false, vertical: true)
+                if let signUp = Self.signUpURL {
+                    Link("Get started", destination: signUp)
+                        .font(BrandFont.body(15, weight: .bold))
+                        .tint(Brand.greenDk)
                 }
             }
+
+            HStack(alignment: .top, spacing: 11) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Brand.greenDk)
+                Text("Checking your credit with Launch is a soft pull. It never lowers your score.")
+                    .font(BrandFont.body(13.5, weight: .medium))
+                    .foregroundStyle(Brand.dim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .background(Brand.wash.opacity(0.75), in: RoundedRectangle(cornerRadius: Metrics.radiusTile, style: .continuous))
         }
-        .padding(.top, 30)
+        .frame(maxWidth: .infinity)
         .opacity(appeared ? 1 : 0)
     }
 
-    // MARK: - Actions
-
     private func attemptSignIn() {
-        emailError = Validate.email(email) ? nil : "Enter a valid email address."
-        passwordError = password.isEmpty ? "Enter your password." : nil
-        guard emailError == nil, passwordError == nil else { return }
-
+        guard canSubmit else { return }
         focus = nil
         Task {
             isWorking = true
@@ -188,21 +156,8 @@ struct LoginView: View {
             isWorking = false
         }
     }
-
-    private var biometricsAvailable: Bool {
-        LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-    }
-
-    private var biometryIsFaceID: Bool {
-        let context = LAContext()
-        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-        return context.biometryType == .faceID
-    }
 }
 
 #Preview {
-    NavigationStack {
-        LoginView(showingSignUp: .constant(false))
-    }
-    .environmentObject(AppState())
+    LoginView().environmentObject(AppState())
 }

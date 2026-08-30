@@ -34,7 +34,6 @@ struct PlanView: View {
                         .padding(.top, 14)
 
                         summaryCard
-                        progressTrack
 
                         if !openFixes.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
@@ -61,9 +60,7 @@ struct PlanView: View {
                                     .foregroundStyle(Brand.ink)
 
                                 ForEach(doneFixes) { fix in
-                                    DoneFixRow(fix: fix) {
-                                        state.setFixStatus(fix, to: .todo)
-                                    }
+                                    DoneFixRow(fix: fix)
                                 }
                             }
                         }
@@ -114,23 +111,6 @@ struct PlanView: View {
                         .foregroundStyle(Brand.dim)
                 }
             }
-        }
-    }
-
-    private var progressTrack: some View {
-        let total = max(state.fixes.count, 1)
-        let done = doneFixes.count
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("\(done) of \(total) handled")
-                    .font(BrandFont.body(13.5, weight: .semibold))
-                    .foregroundStyle(Brand.dim)
-                Spacer()
-                Text("\(Int(Double(done) / Double(total) * 100))%")
-                    .font(BrandFont.number(13.5))
-                    .foregroundStyle(Brand.greenDk)
-            }
-            ProgressTrack(value: Double(done) / Double(total))
         }
     }
 
@@ -230,7 +210,6 @@ struct FixCard: View {
 
 struct DoneFixRow: View {
     let fix: FixItem
-    let onReopen: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -243,9 +222,6 @@ struct DoneFixRow: View {
                 .strikethrough(color: Brand.faint)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            Button("Undo", action: onReopen)
-                .font(BrandFont.body(13, weight: .semibold))
-                .foregroundStyle(Brand.faint)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

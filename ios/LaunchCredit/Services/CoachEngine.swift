@@ -150,7 +150,7 @@ struct OnDeviceCoach: CoachEngine {
                 return ChatMessage(
                     role: .coach,
                     text: "You aren't getting credit for any of your bills yet — and you're already paying them. Add rent first: it's the biggest one, and we can backdate up to 24 months of it onto your report.",
-                    suggestions: ["Add my rent", "Which bills count?"]
+                    suggestions: ["Which bills count?", "What's my next move?"]
                 )
             }
             let names = reporting.map { $0.kind.label.lowercased() }.joined(separator: ", ")
@@ -163,7 +163,7 @@ struct OnDeviceCoach: CoachEngine {
                     value: "\(reporting.count) live",
                     subtitle: "\(backdated) months backdated · all 3 bureaus"
                 ),
-                suggestions: ["Can I add another bill?", "What's my next move?"]
+                suggestions: ["Can I turn on another bill?", "What's my next move?"]
             )
 
         case .builderAccount:
@@ -171,7 +171,7 @@ struct OnDeviceCoach: CoachEngine {
                 return ChatMessage(
                     role: .coach,
                     text: "Your builder account isn't open yet — that's step one. It's a small reported line through our partner, no hard inquiry, and it starts building on-time history from the first month.",
-                    suggestions: ["Open my builder account", "How much does it cost?"]
+                    suggestions: ["How much does it cost?", "What's my next move?"]
                 )
             }
             let tier = c.builder.tier
@@ -183,7 +183,7 @@ struct OnDeviceCoach: CoachEngine {
                     value: money(tier.tradeline),
                     subtitle: "\(c.builder.onTimePayments) on-time · all 3 bureaus"
                 ),
-                suggestions: ["Should I upgrade my tier?", "When does it report?"]
+                suggestions: ["When does it report?", "What's my next move?"]
             )
 
         case .nextMove:

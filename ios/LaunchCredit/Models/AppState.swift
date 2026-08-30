@@ -41,7 +41,6 @@ final class AppState: ObservableObject {
         self.coach = coach
     }
 
-    var hasStoredAccount: Bool { auth.hasStoredAccount }
     var storedEmail: String? { auth.storedEmail }
 
     // MARK: - Auth
@@ -66,40 +65,9 @@ final class AppState: ObservableObject {
         }
     }
 
-    func signUp(firstName: String, lastName: String, email: String, password: String) async -> Bool {
-        authError = nil
-        do {
-            user = try await auth.signUp(firstName: firstName, lastName: lastName, email: email, password: password)
-            loadMemberData()
-            return true
-        } catch {
-            authError = (error as? AuthError)?.errorDescription ?? error.localizedDescription
-            return false
-        }
-    }
-
-    func signInWithBiometrics() async -> Bool {
-        authError = nil
-        do {
-            user = try await auth.signInWithBiometrics()
-            loadMemberData()
-            return true
-        } catch {
-            authError = (error as? AuthError)?.errorDescription ?? error.localizedDescription
-            return false
-        }
-    }
-
     func signOut() {
         persistMemberData()
         auth.signOut()
-        user = nil
-        messages = []
-    }
-
-    func deleteAccount() {
-        (auth as? LocalAuthService)?.eraseAccount()
-        store.wipe()
         user = nil
         messages = []
     }
@@ -176,6 +144,13 @@ final class AppState: ObservableObject {
         persistMemberData()
     }
 
+    /// Lets any screen hand a question to the coach — tapping "Ask why" on
+    /// this week's move opens the coach with the answer already arriving.
+    func askCoach(_ question: String) {
+        guard !coachIsTyping else { return }
+        Task { await send(question) }
+    }
+
     func clearConversation() {
         messages = []
         seedConversation()
@@ -184,8 +159,9 @@ final class AppState: ObservableObject {
 
     // MARK: - Member actions
 
+    /// "Mark it done" on this week's move.
     func completeNextMove() {
-        guard var move = nextMove else { return }
+        guard var move = nextMove, !move.isDone else { return }
         move.isDone = true
         nextMove = move
         applyScoreChange(move.estimatedPoints)
@@ -196,34 +172,15 @@ final class AppState: ObservableObject {
         guard let index = fixes.firstIndex(where: { $0.id == fix.id }) else { return }
         let wasDone = fixes[index].status == .done
         fixes[index].status = status
-        if status == .done && !wasDone {
-            applyScoreChange(fixes[index].pointCost)
-        }
+        if status == .done && !wasDone { applyScoreChange(fixes[index].pointCost) }
         persistMemberData()
     }
 
-    func setBill(_ bill: BillAccount, state: BillAccount.State) {
+    /// The site's promise is "add them in the app and they start landing on
+    /// your report" — so switching a bill on is the whole interaction.
+    func toggleBill(_ bill: BillAccount) {
         guard let index = bills.firstIndex(where: { $0.id == bill.id }) else { return }
-        bills[index].state = state
-        persistMemberData()
-    }
-
-    func addBill(_ bill: BillAccount) {
-        bills.append(bill)
-        persistMemberData()
-    }
-
-    func upgradeBuilder(to tier: BuilderTier) {
-        builder.tier = tier
-        subscription.builderFee = tier.monthlyFee
-        persistMemberData()
-    }
-
-    func openBuilderAccount(tier: BuilderTier) {
-        builder.isOpen = true
-        builder.tier = tier
-        builder.openedAt = Date()
-        subscription.builderFee = tier.monthlyFee
+        bills[index].state = bills[index].state == .off ? .pending : .off
         persistMemberData()
     }
 
@@ -265,9 +222,5 @@ private struct LocalStore {
     func load() -> MemberSnapshot? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(MemberSnapshot.self, from: data)
-    }
-
-    func wipe() {
-        UserDefaults.standard.removeObject(forKey: key)
     }
 }
