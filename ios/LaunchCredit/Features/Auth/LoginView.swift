@@ -10,6 +10,10 @@ struct LoginView: View {
     @State private var password = ""
     @State private var isWorking = false
     @State private var appeared = false
+    @State private var showingCheckout = false
+    /// Set when the member closes the checkout, so the screen can meet them
+    /// where they left off instead of looking like nothing happened.
+    @State private var returnedFromCheckout = false
 
     @FocusState private var focus: String?
     private enum Field {
@@ -39,6 +43,12 @@ struct LoginView: View {
                 .padding(.bottom, 40)
             }
             .scrollDismissesKeyboard(.interactively)
+        }
+        .sheet(isPresented: $showingCheckout, onDismiss: handleCheckoutReturn) {
+            if let signUp = Self.signUpURL {
+                SafariView(url: signUp)
+                    .ignoresSafeArea()
+            }
         }
         .onAppear {
             if let stored = state.storedEmail, email.isEmpty { email = stored }
@@ -92,6 +102,22 @@ struct LoginView: View {
             .submitLabel(.go)
             .onSubmit { attemptSignIn() }
 
+            if returnedFromCheckout {
+                HStack(alignment: .top, spacing: 11) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Brand.greenDk)
+                    Text("All set? Sign in with the email and password you just used.")
+                        .font(BrandFont.body(13.5, weight: .medium))
+                        .foregroundStyle(Brand.dim)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Brand.wash, in: RoundedRectangle(cornerRadius: Metrics.radiusTile, style: .continuous))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
             if let error = state.authError {
                 Text(error)
                     .font(BrandFont.body(14, weight: .medium))
@@ -114,6 +140,7 @@ struct LoginView: View {
             .padding(.top, 4)
         }
         .animation(.easeOut(duration: 0.2), value: state.authError)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: returnedFromCheckout)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 22)
     }
@@ -124,10 +151,13 @@ struct LoginView: View {
                 Text("New to Launch?")
                     .font(BrandFont.body(15))
                     .foregroundStyle(Brand.dim)
-                if let signUp = Self.signUpURL {
-                    Link("Get started", destination: signUp)
-                        .font(BrandFont.body(15, weight: .bold))
-                        .tint(Brand.greenDk)
+                if Self.signUpURL != nil {
+                    Button("Get started") {
+                        Haptics.tap()
+                        showingCheckout = true
+                    }
+                    .font(BrandFont.body(15, weight: .bold))
+                    .foregroundStyle(Brand.greenDk)
                 }
             }
 
@@ -145,6 +175,15 @@ struct LoginView: View {
         }
         .frame(maxWidth: .infinity)
         .opacity(appeared ? 1 : 0)
+    }
+
+    /// Closing the checkout drops them back here. Say so, and put the cursor
+    /// where they need it.
+    private func handleCheckoutReturn() {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            returnedFromCheckout = true
+        }
+        if email.isEmpty { focus = Field.email }
     }
 
     private func attemptSignIn() {
