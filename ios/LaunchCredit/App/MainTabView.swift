@@ -23,7 +23,7 @@ struct MainTabView: View {
                 .tag(Tab.build)
 
             CoachView()
-                .tabItem { Label("Coach", systemImage: "bubble.left.and.text.bubble.right.fill") }
+                .tabItem { Label("Coach", systemImage: "message.fill") }
                 .tag(Tab.coach)
         }
         .tint(Brand.green)

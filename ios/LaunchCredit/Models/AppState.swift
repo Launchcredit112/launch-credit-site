@@ -270,8 +270,8 @@ final class AppState: ObservableObject {
     /// utilization, the score and the *next* move all move together — the file
     /// stays true instead of the checkbox drifting away from it.
     func completeNextMove() {
-        defer { if remindersOn { Task { await rescheduleReminders() } } }
         guard let move = nextMove, !move.isDone else { return }
+        defer { if remindersOn { Task { await rescheduleReminders() } } }
 
         if let payment = move.payment,
            let cardID = move.cardID,
